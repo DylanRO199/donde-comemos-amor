@@ -609,7 +609,7 @@ function renderWinnerCard(item) {
       <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-white/10">
         <div class="flex items-center gap-2">
           <button type="button" id="btnWinnerEval" class="bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs px-4 py-2 rounded-xl transition cursor-pointer">
-            Evaluar Salida
+            Guardar en Visitados / Evaluar
           </button>
           <button type="button" id="btnWinnerFav" class="glass-pill text-xs font-semibold px-3 py-2 rounded-xl transition cursor-pointer ${
             fav ? "text-rose-300 border-rose-500/40" : "text-slate-300"
@@ -813,6 +813,151 @@ function runTrio() {
   render();
 }
 
+// Descarte de 5 Locales (Top 5 con descarte progresivo)
+function runFiveMode() {
+  const candidates = getFilteredCandidates();
+  goToStep(4);
+
+  const slotBox = document.getElementById("slotMachineBox");
+  const container = document.getElementById("winnerResultContainer");
+  if (slotBox) slotBox.classList.add("hidden");
+
+  if (candidates.length < 3) {
+    if (container) {
+      container.innerHTML = `
+        <div class="text-center py-4 text-xs text-slate-400">
+          Se necesitan al menos 3 opciones disponibles para el modo descarte.
+          <button type="button" id="btnFiveBack" class="block mx-auto mt-2 text-rose-300 font-bold underline cursor-pointer">Volver al Paso 2</button>
+        </div>
+      `;
+      document.getElementById("btnFiveBack")?.addEventListener("click", () => goToStep(2));
+    }
+    return;
+  }
+
+  const countToPick = Math.min(5, candidates.length);
+  const shuffled = [...candidates].sort(() => Math.random() - 0.5);
+  const pool = shuffled.slice(0, countToPick);
+  const discardedIds = new Set();
+
+  function render() {
+    if (!container) return;
+
+    const remaining = pool.filter((p) => !discardedIds.has(p.id));
+
+    // Si solo queda 1 sobreviviente, es el ganador automático
+    if (remaining.length === 1) {
+      const winner = remaining[0];
+      if (slotBox) slotBox.classList.remove("hidden");
+      document.getElementById("slotTitle").textContent = winner.name;
+      document.getElementById("slotSubtitle").textContent = `${winner.cuisine} · ${winner.zone}`;
+      playFanfare();
+      renderWinnerCard(winner);
+      return;
+    }
+
+    const isFinalTwo = remaining.length === 2;
+
+    container.innerHTML = `
+      <div class="glass-card rounded-2xl p-4 sm:p-5 border border-amber-500/30 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-3">
+          <div>
+            <div class="text-xs font-bold text-amber-400 uppercase tracking-wider">
+              ${isFinalTwo ? "¡Finalistas cara a cara!" : `Descarte Top ${countToPick}`}
+            </div>
+            <h3 class="text-base font-extrabold text-white mt-0.5">
+              ${isFinalTwo ? "Elijan su ganador o descarten 1 más" : `Quedan ${remaining.length} opciones · Vayan descartando las que no quieran`}
+            </h3>
+          </div>
+          <button type="button" id="btnFiveReroll" class="text-xs text-slate-400 hover:text-white underline cursor-pointer">
+            Sortear otros ${countToPick}
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-${countToPick === 5 ? '5' : '3'} gap-3">
+          ${pool
+            .map((item) => {
+              const mall = getMallById(item.mallId);
+              const isDiscarded = discardedIds.has(item.id);
+
+              return `
+              <div class="bg-black/40 border rounded-xl p-3 flex flex-col justify-between space-y-2.5 transition ${
+                isDiscarded
+                  ? "border-white/5 opacity-25 grayscale scale-95"
+                  : isFinalTwo
+                  ? "border-amber-400/60 bg-amber-500/10 shadow-[0_0_12px_rgba(245,158,11,0.2)]"
+                  : "border-white/10 hover:border-amber-500/40"
+              }">
+                <div>
+                  <div class="flex items-center justify-between gap-1 mb-1">
+                    <span class="text-[10px] font-bold text-slate-400 truncate">${mall ? mall.shortName : ""}</span>
+                    <span class="text-xs font-bold text-amber-300 shrink-0">${item.rating.toFixed(1)} ★</span>
+                  </div>
+                  <h4 class="text-sm font-extrabold text-white leading-snug line-clamp-1">${item.name}</h4>
+                  <p class="text-[11px] text-rose-300 truncate">${item.cuisine}</p>
+                  <p class="text-[11px] text-slate-400 mt-1 line-clamp-2">${item.mustTry}</p>
+                </div>
+
+                <div class="pt-1">
+                  ${
+                    isDiscarded
+                      ? `<span class="text-[10px] text-center text-slate-500 block py-1.5 font-bold uppercase tracking-wider">Eliminado</span>`
+                      : isFinalTwo
+                      ? `
+                        <button type="button" data-pick-five="${item.id}"
+                          class="w-full bg-gradient-to-r from-amber-500 to-rose-600 hover:opacity-95 text-white text-xs font-bold py-2 rounded-lg transition cursor-pointer shadow-md mb-1.5">
+                          Elegir Ganador
+                        </button>
+                        <button type="button" data-discard-five="${item.id}"
+                          class="w-full bg-white/5 hover:bg-white/10 text-slate-400 text-[10px] py-1 rounded transition cursor-pointer">
+                          Descartar
+                        </button>
+                      `
+                      : `
+                        <button type="button" data-discard-five="${item.id}"
+                          class="w-full bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-500/40 text-xs font-bold py-1.5 rounded-lg transition cursor-pointer">
+                          Descartar
+                        </button>
+                      `
+                  }
+                </div>
+              </div>
+            `;
+            })
+            .join("")}
+        </div>
+      </div>
+    `;
+
+    document.getElementById("btnFiveReroll")?.addEventListener("click", runFiveMode);
+
+    container.querySelectorAll("button[data-discard-five]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const id = btn.getAttribute("data-discard-five");
+        discardedIds.add(id);
+        playTick(300, 0.04);
+        render();
+      });
+    });
+
+    container.querySelectorAll("button[data-pick-five]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const id = btn.getAttribute("data-pick-five");
+        const chosen = getAllPlaces().find((p) => p.id === id);
+        if (chosen) {
+          if (slotBox) slotBox.classList.remove("hidden");
+          document.getElementById("slotTitle").textContent = chosen.name;
+          document.getElementById("slotSubtitle").textContent = `${chosen.cuisine} · ${chosen.zone}`;
+          playFanfare();
+          renderWinnerCard(chosen);
+        }
+      });
+    });
+  }
+
+  render();
+}
+
 // ============================================================================
 // APARTADO 2: LUGARES VISITADOS (DYLAN Y MARIA)
 // ============================================================================
@@ -992,7 +1137,7 @@ function renderCatalog() {
               Ficha
             </button>
             <button type="button" data-cat-review="${item.id}" class="bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-bold py-1.5 rounded-lg transition cursor-pointer">
-              ${rev ? "Editar" : "Evaluar"}
+              ${rev ? "Editar" : "Ya Fuimos"}
             </button>
             <button type="button" data-cat-fav="${item.id}" class="glass-pill text-[11px] font-bold py-1.5 rounded-lg transition cursor-pointer ${
               fav ? "text-rose-300 border-rose-500/40" : "text-slate-400"
@@ -1298,6 +1443,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("btnSpinRoulette")?.addEventListener("click", runRoulette);
   document.getElementById("btnBattleMode")?.addEventListener("click", runDuel);
   document.getElementById("btnTrioMode")?.addEventListener("click", runTrio);
+  document.getElementById("btnFiveMode")?.addEventListener("click", runFiveMode);
   document.getElementById("btnResetFilters")?.addEventListener("click", resetFilters);
 
   // Catálogo: Filtros y Búsqueda
@@ -1383,13 +1529,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const dylanRating = Number(document.getElementById("visitDylanStars").value) || 5;
     const dylanDish = document.getElementById("visitDylanDish").value.trim();
-    const dylanComment = document.getElementById("visitDylanReview").value.trim();
+    const dylanComment = document.getElementById("visitDylanReview").value.trim() || "Buena salida juntos.";
 
     const mariaRating = Number(document.getElementById("visitMariaStars").value) || 5;
     const mariaDish = document.getElementById("visitMariaDish").value.trim();
-    const mariaComment = document.getElementById("visitMariaReview").value.trim();
+    const mariaComment = document.getElementById("visitMariaReview").value.trim() || "Nos gustó mucho.";
 
-    if (!placeName || !dylanComment || !mariaComment) return;
+    if (!placeName) return;
 
     const formattedDate = dateRaw
       ? new Date(dateRaw + "T12:00:00").toLocaleDateString("es-CL", { day: "2-digit", month: "short" })

@@ -3,6 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Dónde Comemos" />
+  <meta name="theme-color" content="#07060c" />
+  <link rel="manifest" href="manifest.json" />
   <title>¿Dónde Comemos, Amor? · Dylan & Maria</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -271,14 +276,15 @@
       <div id="gameStep3" class="hidden glass-card rounded-2xl p-4 sm:p-5 space-y-4 step-fade">
         <h2 class="text-base sm:text-lg font-extrabold text-white">Elegir Modo de Juego</h2>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <!-- Modo 1 -->
           <div class="bg-black/40 border border-rose-500/40 rounded-2xl p-4 flex flex-col justify-between space-y-3">
             <div>
               <span class="text-[10px] font-bold uppercase tracking-wider text-rose-400 block">Opción 1</span>
               <h3 class="text-base font-extrabold text-white">Ruleta Directa</h3>
+              <p class="text-[11px] text-slate-400 mt-0.5">1 ganador al azar</p>
             </div>
-            <button id="btnSpinRoulette" type="button" class="w-full bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs py-2.5 px-3 rounded-xl transition">
+            <button id="btnSpinRoulette" type="button" class="w-full bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs py-2.5 px-3 rounded-xl transition cursor-pointer">
               Sortear
             </button>
           </div>
@@ -288,8 +294,9 @@
             <div>
               <span class="text-[10px] font-bold uppercase tracking-wider text-purple-400 block">Opción 2</span>
               <h3 class="text-base font-extrabold text-white">Duelo 2 Opciones</h3>
+              <p class="text-[11px] text-slate-400 mt-0.5">Cara a cara</p>
             </div>
-            <button id="btnBattleMode" type="button" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs py-2.5 px-3 rounded-xl transition">
+            <button id="btnBattleMode" type="button" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs py-2.5 px-3 rounded-xl transition cursor-pointer">
               Iniciar Duelo
             </button>
           </div>
@@ -298,10 +305,23 @@
           <div class="bg-black/40 border border-sky-500/40 rounded-2xl p-4 flex flex-col justify-between space-y-3">
             <div>
               <span class="text-[10px] font-bold uppercase tracking-wider text-sky-400 block">Opción 3</span>
-              <h3 class="text-base font-extrabold text-white">Terna y Descarte</h3>
+              <h3 class="text-base font-extrabold text-white">Terna (3 Opciones)</h3>
+              <p class="text-[11px] text-slate-400 mt-0.5">Descartar 1 y elegir</p>
             </div>
-            <button id="btnTrioMode" type="button" class="w-full bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs py-2.5 px-3 rounded-xl transition">
+            <button id="btnTrioMode" type="button" class="w-full bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs py-2.5 px-3 rounded-xl transition cursor-pointer">
               Iniciar Terna
+            </button>
+          </div>
+
+          <!-- Modo 4 -->
+          <div class="bg-black/40 border border-amber-500/40 rounded-2xl p-4 flex flex-col justify-between space-y-3">
+            <div>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-amber-400 block">Opción 4</span>
+              <h3 class="text-base font-extrabold text-white">Descarte de 5</h3>
+              <p class="text-[11px] text-slate-400 mt-0.5">Ir eliminando de a 1</p>
+            </div>
+            <button id="btnFiveMode" type="button" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs py-2.5 px-3 rounded-xl transition cursor-pointer">
+              Iniciar Top 5
             </button>
           </div>
         </div>
@@ -490,7 +510,7 @@
               <input type="text" id="visitDylanDish" placeholder="¿Qué pidió Dylan?" class="w-full bg-black/40 border border-white/15 rounded-lg px-2.5 py-1 text-xs text-white" />
             </div>
             <div>
-              <textarea id="visitDylanReview" rows="2" required placeholder="Opinión de Dylan..." class="w-full bg-black/40 border border-white/15 rounded-lg px-2.5 py-1 text-xs text-white"></textarea>
+              <textarea id="visitDylanReview" rows="2" placeholder="Opinión o detalle de Dylan (opcional)..." class="w-full bg-black/40 border border-white/15 rounded-lg px-2.5 py-1 text-xs text-white"></textarea>
             </div>
           </div>
 
@@ -512,7 +532,7 @@
               <input type="text" id="visitMariaDish" placeholder="¿Qué pidió Maria?" class="w-full bg-black/40 border border-white/15 rounded-lg px-2.5 py-1 text-xs text-white" />
             </div>
             <div>
-              <textarea id="visitMariaReview" rows="2" required placeholder="Opinión de Maria..." class="w-full bg-black/40 border border-white/15 rounded-lg px-2.5 py-1 text-xs text-white"></textarea>
+              <textarea id="visitMariaReview" rows="2" placeholder="Opinión o detalle de Maria (opcional)..." class="w-full bg-black/40 border border-white/15 rounded-lg px-2.5 py-1 text-xs text-white"></textarea>
             </div>
           </div>
         </div>

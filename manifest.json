@@ -1,0 +1,17 @@
+{
+  "name": "¿Dónde Comemos, Amor? · Dylan & Maria",
+  "short_name": "Dónde Comemos",
+  "description": "Decisiones de comida y bitácora de salidas para Dylan y Maria",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#07060c",
+  "theme_color": "#07060c",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon-192.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}
