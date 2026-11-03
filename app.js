@@ -506,7 +506,7 @@ function runDuel() {
   container.innerHTML = `
     <div class="glass-card rounded-2xl p-4 sm:p-5 border border-purple-500/30 space-y-4">
       <div class="flex items-center justify-between">
-        <h3 class="text-base font-extrabold text-white">Duelo: Elijan su favorito</h3>
+        <h3 class="text-base font-extrabold text-white">Duelo</h3>
         <button type="button" id="btnDuelReroll" class="text-xs text-slate-400 hover:text-white underline">Otro duelo</button>
       </div>
 
