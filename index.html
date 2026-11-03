@@ -104,20 +104,26 @@
           </span>
         </div>
         <p id="coupleSubtitle" class="text-xs text-slate-400 mt-0.5">
-          El rincón de ella y yo para decidir nuestra próxima cita gastronómica
+          El espacio exclusivo de Dylan y Maria · Nuestras salidas y citas juntos
         </p>
       </div>
 
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 flex-wrap">
+        <a href="#visited-section" class="bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-200 text-xs sm:text-sm font-bold px-3.5 py-2 rounded-xl flex items-center gap-2 transition">
+          <span>Lugares Visitados</span>
+          <span id="badgeVisitedCount" class="px-2 py-0.5 text-[11px] rounded-full bg-rose-500 text-white font-extrabold">0</span>
+        </a>
+        <button id="btnOpenVisitReviewModal" class="bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white text-xs sm:text-sm font-bold px-3.5 py-2 rounded-xl transition shadow-md shadow-rose-500/20">
+          Evaluar Salida
+        </button>
+        <button id="btnOpenHistory" class="glass-pill hover:bg-white/10 text-xs sm:text-sm font-semibold px-3 py-2 rounded-xl transition">
+          Favoritos y Vetados
+        </button>
+        <button id="btnOpenAddModal" class="bg-white/10 hover:bg-white/15 border border-white/15 text-xs sm:text-sm font-semibold px-3 py-2 rounded-xl transition">
+          Nuevo Local
+        </button>
         <button id="btnToggleSound" class="glass-pill hover:bg-white/10 text-xs font-semibold px-3 py-2 rounded-xl transition text-slate-300">
           Sonido: Activo
-        </button>
-        <button id="btnOpenHistory" class="glass-pill hover:bg-white/10 text-xs sm:text-sm font-semibold px-3.5 py-2 rounded-xl flex items-center gap-2 transition">
-          <span>Bitácora y Favoritos</span>
-          <span id="badgeVisitedCount" class="px-2 py-0.5 text-[11px] rounded-full bg-rose-500/30 text-rose-200 font-bold">0</span>
-        </button>
-        <button id="btnOpenAddModal" class="bg-white/10 hover:bg-white/15 border border-white/15 text-xs sm:text-sm font-semibold px-3.5 py-2 rounded-xl transition">
-          Agregar Local
         </button>
       </div>
     </div>
@@ -306,6 +312,38 @@
 
     </section>
 
+    <!-- SECCIÓN EXCLUSIVA: LUGARES QUE YA HEMOS IDO Y PERFILES DE DYLAN Y MARIA -->
+    <section id="visited-section" aria-labelledby="visited-section-title" class="space-y-5 pt-4 scroll-mt-24">
+      <div class="glass-card rounded-3xl p-5 sm:p-7 border border-rose-500/25 space-y-6">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/10 pb-5">
+          <div>
+            <span class="text-[11px] font-bold uppercase tracking-widest text-rose-400">Sección Exclusiva · Nuestro Historial</span>
+            <h2 id="visited-section-title" class="text-xl sm:text-2xl font-extrabold text-white mt-0.5">
+              Lugares a los que Ya Hemos Ido
+            </h2>
+            <p class="text-xs sm:text-sm text-slate-400 mt-0.5">
+              Registro exclusivo de nuestras salidas con perfiles separados para <strong class="text-white">Dylan</strong> y <strong class="text-white">Maria</strong>, calificación en estrellas de cada uno y evaluación de precio.
+            </p>
+          </div>
+          <div class="flex items-center gap-2.5 shrink-0">
+            <button id="btnAddVisitedFromSection" class="spin-btn-glow bg-gradient-to-r from-rose-500 via-pink-500 to-purple-600 text-white font-extrabold text-xs sm:text-sm px-5 py-3 rounded-2xl transition cursor-pointer">
+              Agregar Lugar al que Fuimos
+            </button>
+          </div>
+        </div>
+
+        <!-- Perfiles de Dylan y Maria -->
+        <div id="coupleProfilesSummary" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <!-- Renderizado por JS: Tarjeta Perfil Dylan, Tarjeta Perfil Maria y Resumen de Pareja -->
+        </div>
+
+        <!-- Listado de Lugares Visitados con Reseñas Duales -->
+        <div id="visitedPlacesList" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <!-- Renderizado por JS -->
+        </div>
+      </div>
+    </section>
+
     <!-- PASO 3: Directorio Completo de Locales del Mall Seleccionado -->
     <section aria-labelledby="directory-title" class="space-y-4 pt-2">
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 glass-card p-4 sm:p-5 rounded-2xl">
@@ -399,6 +437,142 @@
       </div>
 
       <div id="historyModalBody" class="overflow-y-auto space-y-5 pr-1 flex-1"></div>
+    </div>
+  </div>
+
+  <!-- MODAL: Registrar o Editar Lugar al que Fuimos (Reseñas de Dylan y Maria + Precio) -->
+  <div id="visitReviewModal" class="fixed inset-0 z-50 hidden items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-sm overflow-y-auto">
+    <div class="glass-card border border-rose-500/30 rounded-3xl max-w-2xl w-full p-5 sm:p-7 relative my-8 max-h-[92vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-white/10 pb-3.5 mb-5">
+        <div>
+          <span class="text-[10px] font-bold uppercase tracking-widest text-rose-400">Bitácora de Citas · Dylan y Maria</span>
+          <h3 id="visitModalTitle" class="text-lg sm:text-xl font-extrabold text-white mt-0.5">
+            Registrar Lugar al que Fuimos
+          </h3>
+        </div>
+        <button id="btnCloseVisitReviewModal" type="button" class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-rose-500 text-xs text-white font-bold transition">
+          Cerrar
+        </button>
+      </div>
+
+      <form id="formVisitReview" class="space-y-5 text-xs sm:text-sm">
+        <input type="hidden" id="visitEditId" value="" />
+        <input type="hidden" id="visitUidRef" value="" />
+        <input type="hidden" id="visitBrandRef" value="" />
+
+        <!-- Selección de Local y Fecha -->
+        <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+          <div class="sm:col-span-5">
+            <label class="block text-slate-300 font-semibold mb-1">Elegir del Catálogo (Opcional)</label>
+            <select id="visitSelectCatalog" class="w-full bg-black/50 border border-white/15 rounded-xl px-3 py-2 text-white">
+              <option value="">-- Seleccionar o escribir abajo --</option>
+            </select>
+          </div>
+          <div class="sm:col-span-4">
+            <label class="block text-slate-300 font-semibold mb-1">Nombre del Local *</label>
+            <input type="text" id="visitPlaceName" required placeholder="Ej: Barra Chalaca / Tanta" class="w-full bg-black/50 border border-white/15 rounded-xl px-3 py-2 text-white" />
+          </div>
+          <div class="sm:col-span-3">
+            <label class="block text-slate-300 font-semibold mb-1">Fecha de la Salida</label>
+            <input type="date" id="visitDate" class="w-full bg-black/50 border border-white/15 rounded-xl px-3 py-2 text-white" />
+          </div>
+        </div>
+
+        <!-- Mall, Evaluación de Precio y Gasto -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-white/[0.03] border border-white/10 rounded-2xl p-3.5">
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Mall o Ubicación</label>
+            <input type="text" id="visitMallName" placeholder="Ej: Costanera Center (QINTO)" class="w-full bg-black/50 border border-white/15 rounded-xl px-3 py-2 text-white" />
+          </div>
+          <div>
+            <label class="block text-amber-300 font-bold mb-1">Calificación de Precio *</label>
+            <select id="visitPriceLevel" required class="w-full bg-black/50 border border-white/15 rounded-xl px-3 py-2 text-white">
+              <option value="$">$ · Económico (Muy barato)</option>
+              <option value="$$" selected>$$ · Moderado (Justo calidad/precio)</option>
+              <option value="$$$">$$$ · Restaurante (Medio-Alto)</option>
+              <option value="$$$$">$$$$ · Premium (Caro / Especial)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-amber-300 font-bold mb-1">Total Gastado o Precio p/p</label>
+            <input type="text" id="visitPriceAmount" placeholder="Ej: $32.000 entre los dos" class="w-full bg-black/50 border border-white/15 rounded-xl px-3 py-2 text-white" />
+          </div>
+        </div>
+
+        <!-- Dos Columnas: Perfil de Dylan y Perfil de Maria -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+          <!-- PERFIL DYLAN -->
+          <div class="bg-sky-500/10 border border-sky-500/30 rounded-2xl p-4 space-y-3">
+            <div class="flex items-center justify-between border-b border-sky-500/20 pb-2">
+              <div>
+                <span class="text-[10px] font-bold uppercase tracking-widest text-sky-400">Perfil 1</span>
+                <h4 class="text-base font-extrabold text-white">Reseña de Dylan</h4>
+              </div>
+              <div class="text-right">
+                <span class="text-[10px] uppercase font-bold text-slate-400 block">Estrellas Dylan</span>
+                <select id="visitDylanStars" class="bg-black/60 border border-sky-500/40 rounded-lg px-2.5 py-1 text-xs font-extrabold text-amber-400">
+                  <option value="5">5.0 Estrellas (Excelente)</option>
+                  <option value="4.5">4.5 Estrellas (Muy Bueno)</option>
+                  <option value="4">4.0 Estrellas (Bueno)</option>
+                  <option value="3.5">3.5 Estrellas (Regular-Bueno)</option>
+                  <option value="3">3.0 Estrellas (Normal)</option>
+                  <option value="2">2.0 Estrellas (Flojo)</option>
+                  <option value="1">1.0 Estrella (Malo)</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs text-slate-300 font-semibold mb-1">¿Qué pidió Dylan?</label>
+              <input type="text" id="visitDylanDish" placeholder="Ej: Lomo Saltado / Doble Burger" class="w-full bg-black/40 border border-white/15 rounded-xl px-3 py-1.5 text-xs text-white" />
+            </div>
+            <div>
+              <label class="block text-xs text-slate-300 font-semibold mb-1">Opinión de Dylan *</label>
+              <textarea id="visitDylanReview" rows="3" required placeholder="Escribe qué le pareció la comida, porciones y atención a Dylan..." class="w-full bg-black/40 border border-white/15 rounded-xl px-3 py-2 text-xs text-white"></textarea>
+            </div>
+          </div>
+
+          <!-- PERFIL MARIA -->
+          <div class="bg-rose-500/10 border border-rose-500/30 rounded-2xl p-4 space-y-3">
+            <div class="flex items-center justify-between border-b border-rose-500/20 pb-2">
+              <div>
+                <span class="text-[10px] font-bold uppercase tracking-widest text-rose-400">Perfil 2</span>
+                <h4 class="text-base font-extrabold text-white">Reseña de Maria</h4>
+              </div>
+              <div class="text-right">
+                <span class="text-[10px] uppercase font-bold text-slate-400 block">Estrellas Maria</span>
+                <select id="visitMariaStars" class="bg-black/60 border border-rose-500/40 rounded-lg px-2.5 py-1 text-xs font-extrabold text-amber-400">
+                  <option value="5">5.0 Estrellas (Excelente)</option>
+                  <option value="4.5">4.5 Estrellas (Muy Bueno)</option>
+                  <option value="4">4.0 Estrellas (Bueno)</option>
+                  <option value="3.5">3.5 Estrellas (Regular-Bueno)</option>
+                  <option value="3">3.0 Estrellas (Normal)</option>
+                  <option value="2">2.0 Estrellas (Flojo)</option>
+                  <option value="1">1.0 Estrella (Malo)</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs text-slate-300 font-semibold mb-1">¿Qué pidió Maria?</label>
+              <input type="text" id="visitMariaDish" placeholder="Ej: Ceviche / Fettuccine / Waffle" class="w-full bg-black/40 border border-white/15 rounded-xl px-3 py-1.5 text-xs text-white" />
+            </div>
+            <div>
+              <label class="block text-xs text-slate-300 font-semibold mb-1">Opinión de Maria *</label>
+              <textarea id="visitMariaReview" rows="3" required placeholder="Escribe qué le pareció el sabor, ambiente y postre a Maria..." class="w-full bg-black/40 border border-white/15 rounded-xl px-3 py-2 text-xs text-white"></textarea>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-2">
+          <button type="button" id="btnCancelVisitReview" class="glass-pill hover:bg-white/10 text-slate-300 font-bold text-xs px-4 py-2.5 rounded-xl transition">
+            Cancelar
+          </button>
+          <button type="submit" class="bg-gradient-to-r from-rose-500 via-pink-500 to-purple-600 text-white font-extrabold text-xs sm:text-sm px-6 py-2.5 rounded-xl shadow-lg shadow-rose-500/25 transition">
+            Guardar Nuestra Reseña
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 

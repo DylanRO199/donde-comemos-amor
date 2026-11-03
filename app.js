@@ -35,8 +35,14 @@
     visited: JSON.parse(localStorage.getItem(STORAGE_KEYS.VISITED) || "[]"),
     vetoed: JSON.parse(localStorage.getItem(STORAGE_KEYS.VETOED) || "[]"),
     customPlaces: JSON.parse(localStorage.getItem(STORAGE_KEYS.CUSTOM_PLACES) || "[]"),
-    coupleNames: JSON.parse(localStorage.getItem(STORAGE_KEYS.COUPLE_NAMES) || '{"p1":"Dylan","p2":"Mi Pareja"}')
+    coupleNames: JSON.parse(localStorage.getItem(STORAGE_KEYS.COUPLE_NAMES) || '{"p1":"Dylan","p2":"Maria"}')
   };
+
+  if (!state.coupleNames.p2 || state.coupleNames.p2 === "Mi Pareja" || state.coupleNames.p2 === "Mi Amor") {
+    state.coupleNames.p1 = state.coupleNames.p1 || "Dylan";
+    state.coupleNames.p2 = "Maria";
+    localStorage.setItem(STORAGE_KEYS.COUPLE_NAMES, JSON.stringify(state.coupleNames));
+  }
 
   function getAllPlaces() {
     return [...(window.RESTAURANTS_DATA || []), ...state.customPlaces];
@@ -78,7 +84,19 @@
   }
 
   function isVisited(uid, brandId) {
-    return state.visited.some((v) => v.uid === uid || v.brandId === brandId);
+    return state.visited.some((v) => (uid && v.uid === uid) || (brandId && v.brandId === brandId));
+  }
+
+  function getVisitRecord(uid, brandId) {
+    return state.visited.find((v) => (uid && v.uid === uid) || (brandId && v.brandId === brandId));
+  }
+
+  function formatPriceLabel(priceLevel) {
+    if (priceLevel === "$") return "$ · Económico";
+    if (priceLevel === "$$") return "$$ · Moderado";
+    if (priceLevel === "$$$") return "$$$ · Medio-Alto";
+    if (priceLevel === "$$$$") return "$$$$ · Premium";
+    return priceLevel || "$$ · Moderado";
   }
 
   function isVetoed(brandId) {
@@ -450,7 +468,29 @@
 
               <!-- Comentario Destacado -->
               ${
-                firstReview
+                vis
+                  ? (() => {
+                      const vRec = getVisitRecord(place.uid, place.brandId);
+                      const dStars = Number(vRec?.dylanStars || 5).toFixed(1);
+                      const mStars = Number(vRec?.mariaStars || 5).toFixed(1);
+                      return `
+                        <div class="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-2.5 text-[11px] text-slate-200 mb-4 space-y-1">
+                          <div class="flex items-center justify-between font-bold text-[10px] uppercase tracking-wider text-emerald-300">
+                            <span>Ya fuimos (${escapeHtml(vRec?.date || "")})</span>
+                            <span>Precio: ${escapeHtml(vRec?.priceLevel || place.priceRange)}</span>
+                          </div>
+                          <div class="grid grid-cols-2 gap-2 pt-1 text-[11px]">
+                            <div class="bg-black/30 rounded-lg px-2 py-1">
+                              <span class="text-sky-300 font-bold">Dylan:</span> <span class="text-amber-400 font-bold">${dStars}/5</span>
+                            </div>
+                            <div class="bg-black/30 rounded-lg px-2 py-1">
+                              <span class="text-rose-300 font-bold">Maria:</span> <span class="text-amber-400 font-bold">${mStars}/5</span>
+                            </div>
+                          </div>
+                        </div>
+                      `;
+                    })()
+                  : firstReview
                   ? `
                 <div class="bg-black/35 border border-white/5 rounded-xl p-2.5 text-[11px] text-slate-300 italic mb-4">
                   "${escapeHtml(firstReview.text)}"
@@ -479,7 +519,7 @@
                       : "glass-pill text-slate-300 hover:bg-white/10"
                   }"
                 >
-                  ${vis ? "Visitado" : "Marcar visita"}
+                  ${vis ? "Ver / Editar Reseña" : "Ya fuimos · Evaluar"}
                 </button>
                 <button
                   type="button"
@@ -539,20 +579,17 @@
   }
 
   function toggleVisited(uid, brandId, placeName) {
-    const existingIdx = state.visited.findIndex((v) => v.uid === uid || v.brandId === brandId);
-    if (existingIdx >= 0) {
-      state.visited.splice(existingIdx, 1);
-    } else {
-      const today = new Date().toLocaleDateString("es-CL");
-      state.visited.unshift({
-        uid,
-        brandId,
-        name: placeName,
-        date: today
-      });
-    }
-    saveState();
-    renderAll();
+    const placeObj = getAllPlaces().find((p) => p.uid === uid || p.brandId === brandId);
+    const existing = getVisitRecord(uid, brandId);
+    openVisitReviewModal({
+      editId: existing ? existing.visitId || existing.uid : "",
+      uid: uid || (placeObj ? placeObj.uid : ""),
+      brandId: brandId || (placeObj ? placeObj.brandId : ""),
+      name: placeName || (placeObj ? placeObj.name : ""),
+      mallName: placeObj ? `${placeObj.mallName} (${placeObj.zone})` : "",
+      priceLevel: placeObj ? placeObj.priceRange : "$$",
+      priceAmount: placeObj ? placeObj.avgPriceCLP : ""
+    });
   }
 
   function toggleVeto(brandId) {
@@ -742,12 +779,14 @@
     `;
 
     document.getElementById("btnAcceptWinner").addEventListener("click", () => {
-      if (!isVisited(winner.uid, winner.brandId)) {
-        toggleVisited(winner.uid, winner.brandId, winner.name);
-      }
-      const btn = document.getElementById("btnAcceptWinner");
-      btn.textContent = "Guardado en la Bitácora de Salidas";
-      btn.className = "bg-rose-600 text-white text-xs sm:text-sm font-extrabold px-4 py-2.5 rounded-xl";
+      openVisitReviewModal({
+        uid: winner.uid,
+        brandId: winner.brandId,
+        name: winner.name,
+        mallName: `${winner.mallName} (${winner.zone})`,
+        priceLevel: winner.priceRange,
+        priceAmount: winner.avgPriceCLP
+      });
     });
 
     document.getElementById("btnFavWinner").addEventListener("click", () => {
@@ -1120,11 +1159,316 @@
     });
   }
 
+  // Renderizar Sección Exclusiva de Lugares Visitados y Perfiles de Dylan y Maria
+  function renderVisitedSection() {
+    const profilesEl = document.getElementById("coupleProfilesSummary");
+    const listEl = document.getElementById("visitedPlacesList");
+    if (!profilesEl || !listEl) return;
+
+    const totalVisits = state.visited.length;
+    const p1Name = state.coupleNames.p1 || "Dylan";
+    const p2Name = state.coupleNames.p2 || "Maria";
+
+    let dylanSum = 0;
+    let mariaSum = 0;
+    let dylanBest = null;
+    let mariaBest = null;
+
+    state.visited.forEach((v) => {
+      const dS = Number(v.dylanStars || 5);
+      const mS = Number(v.mariaStars || 5);
+      dylanSum += dS;
+      mariaSum += mS;
+      if (!dylanBest || dS >= Number(dylanBest.dylanStars || 0)) dylanBest = v;
+      if (!mariaBest || mS >= Number(mariaBest.mariaStars || 0)) mariaBest = v;
+    });
+
+    const dylanAvg = totalVisits > 0 ? (dylanSum / totalVisits).toFixed(1) : "0.0";
+    const mariaAvg = totalVisits > 0 ? (mariaSum / totalVisits).toFixed(1) : "0.0";
+    const coupleAvg = totalVisits > 0 ? ((dylanSum + mariaSum) / (totalVisits * 2)).toFixed(1) : "0.0";
+
+    profilesEl.innerHTML = `
+      <!-- Tarjeta Perfil Dylan -->
+      <div class="bg-sky-500/10 border border-sky-500/30 rounded-2xl p-4 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30">
+              Perfil 1
+            </span>
+            <span class="text-xs font-bold text-slate-400">${totalVisits} ${totalVisits === 1 ? "reseña" : "reseñas"}</span>
+          </div>
+          <h3 class="text-lg font-extrabold text-white mt-2">${escapeHtml(p1Name)}</h3>
+          <p class="text-xs text-slate-300 mt-0.5">Crítico gastronómico de nuestras salidas</p>
+        </div>
+        <div class="mt-4 pt-3 border-t border-sky-500/20 flex items-center justify-between text-xs">
+          <div>
+            <span class="text-slate-400 block text-[10px] uppercase font-bold">Promedio de ${escapeHtml(p1Name)}</span>
+            <span class="text-base font-extrabold text-amber-400">${dylanAvg} / 5.0 Estrellas</span>
+          </div>
+          <div class="text-right">
+            <span class="text-slate-400 block text-[10px] uppercase font-bold">Su Favorito</span>
+            <span class="font-bold text-sky-300 truncate max-w-[130px] block">${dylanBest ? escapeHtml(dylanBest.name) : "Sin registros"}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tarjeta Perfil Maria -->
+      <div class="bg-rose-500/10 border border-rose-500/30 rounded-2xl p-4 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30">
+              Perfil 2
+            </span>
+            <span class="text-xs font-bold text-slate-400">${totalVisits} ${totalVisits === 1 ? "reseña" : "reseñas"}</span>
+          </div>
+          <h3 class="text-lg font-extrabold text-white mt-2">${escapeHtml(p2Name)}</h3>
+          <p class="text-xs text-slate-300 mt-0.5">Crítica gastronómica de nuestras salidas</p>
+        </div>
+        <div class="mt-4 pt-3 border-t border-rose-500/20 flex items-center justify-between text-xs">
+          <div>
+            <span class="text-slate-400 block text-[10px] uppercase font-bold">Promedio de ${escapeHtml(p2Name)}</span>
+            <span class="text-base font-extrabold text-amber-400">${mariaAvg} / 5.0 Estrellas</span>
+          </div>
+          <div class="text-right">
+            <span class="text-slate-400 block text-[10px] uppercase font-bold">Su Favorito</span>
+            <span class="font-bold text-rose-300 truncate max-w-[130px] block">${mariaBest ? escapeHtml(mariaBest.name) : "Sin registros"}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resumen Conjunto de Salidas y Precios -->
+      <div class="bg-purple-500/10 border border-purple-500/30 rounded-2xl p-4 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+              Balance de Pareja
+            </span>
+            <span class="text-xs font-bold text-emerald-400">${totalVisits} salidas</span>
+          </div>
+          <h3 class="text-lg font-extrabold text-white mt-2">${escapeHtml(p1Name)} y ${escapeHtml(p2Name)}</h3>
+          <p class="text-xs text-slate-300 mt-0.5">Nota combinada de todos los locales que hemos visitado</p>
+        </div>
+        <div class="mt-4 pt-3 border-t border-purple-500/20 flex items-center justify-between text-xs">
+          <div>
+            <span class="text-slate-400 block text-[10px] uppercase font-bold">Nota Conjunta</span>
+            <span class="text-base font-extrabold text-amber-400">${coupleAvg} / 5.0 Estrellas</span>
+          </div>
+          <div class="text-right">
+            <span class="text-slate-400 block text-[10px] uppercase font-bold">Estado</span>
+            <span class="font-bold text-purple-200">${totalVisits === 0 ? "Listos para empezar" : "Bitácora activa"}</span>
+          </div>
+        </div>
+      </div>
+    `;
+
+    if (totalVisits === 0) {
+      listEl.innerHTML = `
+        <div class="col-span-full bg-white/[0.03] border border-dashed border-white/15 rounded-2xl p-8 text-center space-y-3">
+          <div class="text-xs font-bold uppercase tracking-widest text-rose-400">Aún no hay lugares registrados</div>
+          <h4 class="text-base sm:text-lg font-extrabold text-white">
+            Agrega el primer lugar al que hayan ido juntos ${escapeHtml(p1Name)} y ${escapeHtml(p2Name)}
+          </h4>
+          <p class="text-xs text-slate-400 max-w-md mx-auto">
+            Presiona el botón "Agregar Lugar al que Fuimos" arriba o el botón "Ya fuimos · Evaluar" en cualquier restaurante del catálogo para dejar la reseña, estrellas y precio de cada uno.
+          </p>
+        </div>
+      `;
+      return;
+    }
+
+    listEl.innerHTML = state.visited
+      .map((item, idx) => {
+        const visitKey = item.visitId || item.uid || `idx-${idx}`;
+        const dStars = Number(item.dylanStars || 5).toFixed(1);
+        const mStars = Number(item.mariaStars || 5).toFixed(1);
+        const avgStars = ((Number(item.dylanStars || 5) + Number(item.mariaStars || 5)) / 2).toFixed(1);
+        const priceLabel = formatPriceLabel(item.priceLevel);
+
+        return `
+          <article class="bg-black/45 border border-white/15 hover:border-rose-500/40 rounded-3xl p-5 flex flex-col justify-between space-y-4 transition">
+            <div class="space-y-3">
+              <!-- Cabecera del local visitado -->
+              <div class="flex flex-wrap items-start justify-between gap-2 border-b border-white/10 pb-3">
+                <div>
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      Visitado · ${escapeHtml(item.date || "Reciente")}
+                    </span>
+                    <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                      Precio: ${escapeHtml(priceLabel)}
+                    </span>
+                    ${
+                      item.priceAmount
+                        ? `<span class="text-[10px] font-semibold text-slate-300 bg-white/5 px-2 py-0.5 rounded-lg border border-white/10">${escapeHtml(item.priceAmount)}</span>`
+                        : ""
+                    }
+                  </div>
+                  <h3 class="text-lg sm:text-xl font-extrabold text-white mt-1.5">${escapeHtml(item.name)}</h3>
+                  <p class="text-xs text-rose-300 font-medium">${escapeHtml(item.mallName || "Santiago")}</p>
+                </div>
+
+                <div class="bg-white/5 border border-white/10 rounded-2xl px-3 py-2 text-center shrink-0">
+                  <div class="text-[10px] uppercase font-bold text-slate-400">Promedio Pareja</div>
+                  <div class="text-sm font-extrabold text-amber-400 mt-0.5">${avgStars} / 5.0 Estrellas</div>
+                </div>
+              </div>
+
+              <!-- Reseñas lado a lado: Dylan y Maria -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <!-- Caja Dylan -->
+                <div class="bg-sky-500/[0.08] border border-sky-500/25 rounded-2xl p-3.5 space-y-1.5">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs font-extrabold text-sky-300">${escapeHtml(p1Name)}</span>
+                    <span class="text-xs font-extrabold text-amber-400 bg-black/40 px-2 py-0.5 rounded-lg border border-sky-500/30">
+                      ${dStars} / 5.0 Estrellas
+                    </span>
+                  </div>
+                  ${
+                    item.dylanDish
+                      ? `<div class="text-[11px] text-slate-300"><strong class="text-sky-200">Pidió:</strong> ${escapeHtml(item.dylanDish)}</div>`
+                      : ""
+                  }
+                  <p class="text-xs text-slate-200 italic leading-relaxed">
+                    "${escapeHtml(item.dylanReview || "Excelente salida juntos.")}"
+                  </p>
+                </div>
+
+                <!-- Caja Maria -->
+                <div class="bg-rose-500/[0.08] border border-rose-500/25 rounded-2xl p-3.5 space-y-1.5">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs font-extrabold text-rose-300">${escapeHtml(p2Name)}</span>
+                    <span class="text-xs font-extrabold text-amber-400 bg-black/40 px-2 py-0.5 rounded-lg border border-rose-500/30">
+                      ${mStars} / 5.0 Estrellas
+                    </span>
+                  </div>
+                  ${
+                    item.mariaDish
+                      ? `<div class="text-[11px] text-slate-300"><strong class="text-rose-200">Pidió:</strong> ${escapeHtml(item.mariaDish)}</div>`
+                      : ""
+                  }
+                  <p class="text-xs text-slate-200 italic leading-relaxed">
+                    "${escapeHtml(item.mariaReview || "Nos encantó ir juntos.")}"
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Botones de edición y eliminación -->
+            <div class="pt-2 border-t border-white/10 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                data-edit-visit="${escapeHtml(visitKey)}"
+                class="text-xs font-bold px-3 py-1.5 rounded-xl glass-pill text-slate-200 hover:bg-white/15 transition"
+              >
+                Editar reseñas
+              </button>
+              <button
+                type="button"
+                data-delete-visit="${escapeHtml(visitKey)}"
+                class="text-xs font-bold px-3 py-1.5 rounded-xl bg-red-500/15 hover:bg-red-500/30 text-red-300 border border-red-500/30 transition"
+              >
+                Eliminar
+              </button>
+            </div>
+          </article>
+        `;
+      })
+      .join("");
+
+    listEl.querySelectorAll("[data-edit-visit]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const key = btn.getAttribute("data-edit-visit");
+        const found = state.visited.find((v, i) => (v.visitId || v.uid || `idx-${i}`) === key);
+        if (found) {
+          openVisitReviewModal({
+            editId: key,
+            uid: found.uid || "",
+            brandId: found.brandId || "",
+            name: found.name || "",
+            mallName: found.mallName || "",
+            date: found.dateISO || "",
+            priceLevel: found.priceLevel || "$$",
+            priceAmount: found.priceAmount || "",
+            dylanStars: found.dylanStars || 5,
+            dylanDish: found.dylanDish || "",
+            dylanReview: found.dylanReview || "",
+            mariaStars: found.mariaStars || 5,
+            mariaDish: found.mariaDish || "",
+            mariaReview: found.mariaReview || ""
+          });
+        }
+      });
+    });
+
+    listEl.querySelectorAll("[data-delete-visit]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const key = btn.getAttribute("data-delete-visit");
+        state.visited = state.visited.filter((v, i) => (v.visitId || v.uid || `idx-${i}`) !== key);
+        saveState();
+        renderAll();
+      });
+    });
+  }
+
+  function openVisitReviewModal(prefill = {}) {
+    const modal = document.getElementById("visitReviewModal");
+    if (!modal) return;
+
+    // Poblar selector con todos los locales del catálogo
+    const catalogSelect = document.getElementById("visitSelectCatalog");
+    const allPlaces = getAllPlaces();
+    catalogSelect.innerHTML =
+      `<option value="">-- Seleccionar del catálogo o escribir nombre --</option>` +
+      allPlaces
+        .map(
+          (p) =>
+            `<option value="${escapeHtml(p.uid)}">${escapeHtml(p.name)} — ${escapeHtml(p.mallName)} (${escapeHtml(p.zone)})</option>`
+        )
+        .join("");
+
+    // Si el local ya fue visitado antes, cargar sus datos para editar
+    const existing =
+      prefill.editId
+        ? state.visited.find((v, i) => (v.visitId || v.uid || `idx-${i}`) === prefill.editId)
+        : getVisitRecord(prefill.uid, prefill.brandId);
+
+    const todayISO = new Date().toISOString().split("T")[0];
+
+    document.getElementById("visitEditId").value = existing
+      ? existing.visitId || existing.uid || prefill.editId || ""
+      : "";
+    document.getElementById("visitUidRef").value = existing?.uid || prefill.uid || "";
+    document.getElementById("visitBrandRef").value = existing?.brandId || prefill.brandId || "";
+    catalogSelect.value = existing?.uid || prefill.uid || "";
+
+    document.getElementById("visitPlaceName").value = existing?.name || prefill.name || "";
+    document.getElementById("visitMallName").value = existing?.mallName || prefill.mallName || "";
+    document.getElementById("visitDate").value = existing?.dateISO || prefill.date || todayISO;
+    document.getElementById("visitPriceLevel").value = existing?.priceLevel || prefill.priceLevel || "$$";
+    document.getElementById("visitPriceAmount").value = existing?.priceAmount || prefill.priceAmount || "";
+
+    document.getElementById("visitDylanStars").value = String(existing?.dylanStars || prefill.dylanStars || "5");
+    document.getElementById("visitDylanDish").value = existing?.dylanDish || prefill.dylanDish || "";
+    document.getElementById("visitDylanReview").value = existing?.dylanReview || prefill.dylanReview || "";
+
+    document.getElementById("visitMariaStars").value = String(existing?.mariaStars || prefill.mariaStars || "5");
+    document.getElementById("visitMariaDish").value = existing?.mariaDish || prefill.mariaDish || "";
+    document.getElementById("visitMariaReview").value = existing?.mariaReview || prefill.mariaReview || "";
+
+    document.getElementById("visitModalTitle").textContent = existing
+      ? `Editar Reseña de ${existing.name}`
+      : "Registrar Lugar al que Fuimos";
+
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+  }
+
   function renderAll() {
     updateNavbarBadges();
     renderMallSelector();
     renderZoneFilterBar();
     updateFilterUI();
+    renderVisitedSection();
     renderDirectoryGrid();
   }
 
@@ -1223,10 +1567,108 @@
     });
     document.getElementById("btnSaveCoupleNames").addEventListener("click", () => {
       const p1 = document.getElementById("inputPartner1").value.trim() || "Dylan";
-      const p2 = document.getElementById("inputPartner2").value.trim() || "Mi Pareja";
+      const p2 = document.getElementById("inputPartner2").value.trim() || "Maria";
       state.coupleNames = { p1, p2 };
       saveState();
       renderAll();
+    });
+
+    // Eventos del Modal de Reseñas de Lugares Visitados (Dylan y Maria)
+    const visitModal = document.getElementById("visitReviewModal");
+    const closeVisitModal = () => {
+      visitModal.classList.add("hidden");
+      visitModal.classList.remove("flex");
+    };
+
+    document.getElementById("btnOpenVisitReviewModal").addEventListener("click", () => {
+      openVisitReviewModal({});
+    });
+    document.getElementById("btnAddVisitedFromSection").addEventListener("click", () => {
+      openVisitReviewModal({});
+    });
+    document.getElementById("btnCloseVisitReviewModal").addEventListener("click", closeVisitModal);
+    document.getElementById("btnCancelVisitReview").addEventListener("click", closeVisitModal);
+    visitModal.addEventListener("click", (e) => {
+      if (e.target === visitModal) closeVisitModal();
+    });
+
+    document.getElementById("visitSelectCatalog").addEventListener("change", (e) => {
+      const uid = e.target.value;
+      if (!uid) return;
+      const found = getAllPlaces().find((p) => p.uid === uid);
+      if (found) {
+        document.getElementById("visitUidRef").value = found.uid;
+        document.getElementById("visitBrandRef").value = found.brandId;
+        document.getElementById("visitPlaceName").value = found.name;
+        document.getElementById("visitMallName").value = `${found.mallName} (${found.zone})`;
+        document.getElementById("visitPriceLevel").value = found.priceRange || "$$";
+        if (!document.getElementById("visitPriceAmount").value) {
+          document.getElementById("visitPriceAmount").value = found.avgPriceCLP || "";
+        }
+      }
+    });
+
+    document.getElementById("formVisitReview").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const editId = document.getElementById("visitEditId").value.trim();
+      const uid = document.getElementById("visitUidRef").value.trim();
+      const brandId = document.getElementById("visitBrandRef").value.trim();
+      const name = document.getElementById("visitPlaceName").value.trim();
+      const mallName = document.getElementById("visitMallName").value.trim() || "Santiago";
+      const dateISO = document.getElementById("visitDate").value;
+      const dateFormatted = dateISO
+        ? new Date(dateISO + "T12:00:00").toLocaleDateString("es-CL")
+        : new Date().toLocaleDateString("es-CL");
+      const priceLevel = document.getElementById("visitPriceLevel").value || "$$";
+      const priceAmount = document.getElementById("visitPriceAmount").value.trim();
+
+      const dylanStars = parseFloat(document.getElementById("visitDylanStars").value) || 5;
+      const dylanDish = document.getElementById("visitDylanDish").value.trim();
+      const dylanReview = document.getElementById("visitDylanReview").value.trim();
+
+      const mariaStars = parseFloat(document.getElementById("visitMariaStars").value) || 5;
+      const mariaDish = document.getElementById("visitMariaDish").value.trim();
+      const mariaReview = document.getElementById("visitMariaReview").value.trim();
+
+      const record = {
+        visitId: editId || `visit-${Date.now()}`,
+        uid: uid || `custom-visit-${Date.now()}`,
+        brandId: brandId || "",
+        name,
+        mallName,
+        dateISO,
+        date: dateFormatted,
+        priceLevel,
+        priceAmount,
+        dylanStars,
+        dylanDish,
+        dylanReview,
+        mariaStars,
+        mariaDish,
+        mariaReview
+      };
+
+      const existingIdx = state.visited.findIndex(
+        (v, i) =>
+          (editId && (v.visitId === editId || v.uid === editId || `idx-${i}` === editId)) ||
+          (uid && v.uid === uid) ||
+          (brandId && v.brandId === brandId)
+      );
+
+      if (existingIdx >= 0) {
+        state.visited[existingIdx] = record;
+      } else {
+        state.visited.unshift(record);
+      }
+
+      saveState();
+      closeVisitModal();
+      renderAll();
+
+      const sectionEl = document.getElementById("visited-section");
+      if (sectionEl) {
+        sectionEl.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
     });
 
     const addModal = document.getElementById("addModal");
