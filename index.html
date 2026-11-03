@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Rendez-Vous à Deux | Nuestras Salidas</title>
-  <meta name="description" content="Rendez-Vous à Deux: nuestra guía y selector aleatorio para elegir dónde comer juntos en nuestras salidas por Santiago." />
+  <title>Rendez-Vous à Deux | Dylan y Maria</title>
+  <meta name="description" content="Rendez-Vous à Deux: juego interactivo paso a paso para decidir dónde comer en pareja y bitácora de reseñas de Dylan y Maria." />
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -17,15 +17,6 @@
         extend: {
           fontFamily: {
             sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
-          },
-          colors: {
-            brand: {
-              50: '#fff1f2',
-              100: '#ffe4e6',
-              400: '#fb7185',
-              500: '#f43f5e',
-              600: '#e11d48',
-            }
           }
         }
       }
@@ -42,7 +33,7 @@
       color: #f8fafc;
     }
     .glass-card {
-      background: rgba(20, 18, 32, 0.82);
+      background: rgba(20, 18, 32, 0.84);
       backdrop-filter: blur(18px);
       -webkit-backdrop-filter: blur(18px);
       border: 1px solid rgba(255, 255, 255, 0.08);
@@ -52,7 +43,7 @@
       border: 1px solid rgba(255, 255, 255, 0.1);
     }
     .slot-window {
-      box-shadow: inset 0 0 32px rgba(0, 0, 0, 0.8), 0 0 30px rgba(244, 63, 94, 0.18);
+      box-shadow: inset 0 0 32px rgba(0, 0, 0, 0.85), 0 0 30px rgba(244, 63, 94, 0.18);
     }
     .spin-btn-glow {
       box-shadow: 0 0 25px rgba(244, 63, 94, 0.45);
@@ -62,8 +53,26 @@
       transform: translateY(-2px);
       box-shadow: 0 0 38px rgba(244, 63, 94, 0.75);
     }
-    .spin-btn-glow:active:not(:disabled) {
-      transform: translateY(1px);
+    .step-fade {
+      animation: fadeSlideIn 0.28s ease-out;
+    }
+    @keyframes fadeSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    @keyframes pulse-border {
+      0%, 100% { border-color: rgba(244, 63, 94, 0.6); }
+      50% { border-color: rgba(168, 85, 247, 0.8); }
+    }
+    .winner-glow {
+      animation: pulse-border 2.2s infinite;
+      box-shadow: 0 20px 60px -15px rgba(244, 63, 94, 0.3);
     }
     ::-webkit-scrollbar {
       width: 8px;
@@ -79,254 +88,365 @@
     ::-webkit-scrollbar-thumb:hover {
       background: #f43f5e;
     }
-    @keyframes pulse-border {
-      0%, 100% { border-color: rgba(244, 63, 94, 0.6); }
-      50% { border-color: rgba(168, 85, 247, 0.8); }
-    }
-    .winner-glow {
-      animation: pulse-border 2.2s infinite;
-      box-shadow: 0 20px 60px -15px rgba(244, 63, 94, 0.3);
-    }
   </style>
 </head>
 <body class="min-h-screen antialiased selection:bg-rose-500 selection:text-white pb-20">
 
-  <!-- Barra Superior -->
+  <!-- Barra Superior con Navegación por Apartados -->
   <header class="sticky top-0 z-40 glass-card border-b border-white/10">
-    <div class="max-w-6xl mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <div class="flex items-center gap-2.5 flex-wrap">
-          <h1 class="text-lg sm:text-2xl font-extrabold tracking-tight bg-gradient-to-r from-white via-rose-100 to-pink-300 bg-clip-text text-transparent">
-            Rendez-Vous à Deux
-          </h1>
-          <span class="text-[10px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30">
-            Noi Due · Nuestras Salidas
-          </span>
+    <div class="max-w-5xl mx-auto px-4 py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="flex items-center gap-2.5 flex-wrap">
+            <h1 class="text-lg sm:text-xl font-extrabold tracking-tight bg-gradient-to-r from-white via-rose-100 to-pink-300 bg-clip-text text-transparent">
+              Rendez-Vous à Deux
+            </h1>
+            <span class="text-[10px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30">
+              Noi Due
+            </span>
+          </div>
+          <p id="coupleSubtitle" class="text-xs text-slate-400 mt-0.5">
+            El espacio exclusivo de Dylan y Maria · Nuestras salidas juntos
+          </p>
         </div>
-        <p id="coupleSubtitle" class="text-xs text-slate-400 mt-0.5">
-          El espacio exclusivo de Dylan y Maria · Nuestras salidas y citas juntos
-        </p>
+
+        <button id="btnToggleSound" class="md:hidden glass-pill hover:bg-white/10 text-[11px] font-semibold px-2.5 py-1.5 rounded-xl transition text-slate-300">
+          Sonido: Activo
+        </button>
       </div>
 
-      <div class="flex items-center gap-2 flex-wrap">
-        <a href="#visited-section" class="bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-200 text-xs sm:text-sm font-bold px-3.5 py-2 rounded-xl flex items-center gap-2 transition">
-          <span>Lugares Visitados</span>
-          <span id="badgeVisitedCount" class="px-2 py-0.5 text-[11px] rounded-full bg-rose-500 text-white font-extrabold">0</span>
-        </a>
-        <button id="btnOpenVisitReviewModal" class="bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white text-xs sm:text-sm font-bold px-3.5 py-2 rounded-xl transition shadow-md shadow-rose-500/20">
-          Evaluar Salida
+      <!-- Menú de 3 Apartados Principales -->
+      <nav aria-label="Apartados principales" class="flex items-center gap-1.5 bg-black/40 p-1.5 rounded-2xl border border-white/10">
+        <button
+          type="button"
+          data-tab="game"
+          class="nav-tab-btn flex-1 md:flex-initial text-xs font-extrabold px-4 py-2 rounded-xl transition bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow"
+        >
+          Juego de Decisión
         </button>
-        <button id="btnOpenHistory" class="glass-pill hover:bg-white/10 text-xs sm:text-sm font-semibold px-3 py-2 rounded-xl transition">
+        <button
+          type="button"
+          data-tab="visited"
+          class="nav-tab-btn flex-1 md:flex-initial text-xs font-bold px-4 py-2 rounded-xl transition text-slate-300 hover:text-white flex items-center justify-center gap-1.5"
+        >
+          <span>Lugares Visitados</span>
+          <span id="badgeVisitedCount" class="px-1.5 py-0.2 text-[10px] rounded-full bg-rose-500/30 text-rose-200 font-extrabold">0</span>
+        </button>
+        <button
+          type="button"
+          data-tab="catalog"
+          class="nav-tab-btn flex-1 md:flex-initial text-xs font-bold px-4 py-2 rounded-xl transition text-slate-300 hover:text-white"
+        >
+          Catálogo de Locales
+        </button>
+      </nav>
+
+      <!-- Botones Secundarios -->
+      <div class="hidden md:flex items-center gap-2">
+        <button id="btnOpenHistory" class="glass-pill hover:bg-white/10 text-xs font-semibold px-3 py-2 rounded-xl transition text-slate-300">
           Favoritos y Vetados
         </button>
-        <button id="btnOpenAddModal" class="bg-white/10 hover:bg-white/15 border border-white/15 text-xs sm:text-sm font-semibold px-3 py-2 rounded-xl transition">
-          Nuevo Local
-        </button>
-        <button id="btnToggleSound" class="glass-pill hover:bg-white/10 text-xs font-semibold px-3 py-2 rounded-xl transition text-slate-300">
+        <button id="btnToggleSoundDesktop" class="glass-pill hover:bg-white/10 text-xs font-semibold px-3 py-2 rounded-xl transition text-slate-300">
           Sonido: Activo
         </button>
       </div>
     </div>
   </header>
 
-  <main class="max-w-6xl mx-auto px-4 pt-6 space-y-8">
+  <main class="max-w-5xl mx-auto px-4 pt-6">
 
-    <!-- PASO 1: Selector de Mall -->
-    <section aria-labelledby="step1-title">
-      <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-2 mb-3.5">
-        <div>
-          <span class="text-[11px] font-bold uppercase tracking-widest text-rose-400">Paso 1 · Centro Comercial</span>
-          <h2 id="step1-title" class="text-xl sm:text-2xl font-extrabold text-white mt-0.5">
-            ¿En qué mall están hoy?
-          </h2>
-        </div>
-        <p id="selectedMallSummary" class="text-xs sm:text-sm text-slate-300 bg-white/5 px-3.5 py-2 rounded-xl border border-white/10"></p>
-      </div>
+    <!-- =========================================================================
+         APARTADO 1: JUEGO DE DECISIÓN PASO A PASO (SALE DE A POCO)
+         ========================================================================= -->
+    <section id="tabPanelGame" class="space-y-6">
 
-      <div id="mallSelectorGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
-        <!-- Renderizado por JS -->
-      </div>
-    </section>
-
-    <!-- PASO 2: Filtros Rápidos + Generador de Decisiones -->
-    <section class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-
-      <!-- Columna Izquierda: Filtros para el Sorteo (5 cols) -->
-      <div class="lg:col-span-5 glass-card rounded-3xl p-5 sm:p-6 space-y-5">
-        <div class="flex items-center justify-between border-b border-white/10 pb-3">
+      <!-- Barra de Progreso de los 4 Niveles del Juego -->
+      <div class="glass-card rounded-3xl p-4 sm:p-5">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
           <div>
-            <span class="text-[11px] font-bold uppercase tracking-widest text-purple-400">Paso 2 · Preferencias</span>
-            <h3 class="text-lg font-bold text-white mt-0.5">Configura tu búsqueda</h3>
+            <span id="gameStepIndicator" class="text-[11px] font-extrabold uppercase tracking-widest text-rose-400">
+              Paso 1 de 4 · Ubicación
+            </span>
+            <h2 id="gameStepHeadline" class="text-lg sm:text-xl font-extrabold text-white mt-0.5">
+              ¿En qué mall están hoy Dylan y Maria?
+            </h2>
           </div>
-          <button id="btnResetFilters" class="text-xs text-rose-400 hover:text-rose-300 font-semibold underline">
-            Restablecer filtros
+          <div class="flex items-center gap-2">
+            <span id="poolCounterBadge" class="text-xs font-extrabold px-3 py-1 rounded-full bg-rose-500/15 text-rose-300 border border-rose-500/30">
+              0 opciones listas
+            </span>
+            <button id="btnRestartGame" type="button" class="text-xs font-bold text-slate-400 hover:text-white underline px-2 py-1">
+              Reiniciar
+            </button>
+          </div>
+        </div>
+
+        <!-- Indicadores de pasos clicables -->
+        <div class="grid grid-cols-4 gap-2">
+          <button type="button" data-goto-step="1" class="step-progress-pill text-left p-2.5 rounded-2xl border transition">
+            <div class="text-[10px] font-bold uppercase tracking-wider opacity-75">Nivel 1</div>
+            <div class="text-xs font-extrabold truncate" id="stepSummaryMall">Elegir Mall</div>
+          </button>
+          <button type="button" data-goto-step="2" class="step-progress-pill text-left p-2.5 rounded-2xl border transition">
+            <div class="text-[10px] font-bold uppercase tracking-wider opacity-75">Nivel 2</div>
+            <div class="text-xs font-extrabold truncate" id="stepSummaryCraving">Antojo del Día</div>
+          </button>
+          <button type="button" data-goto-step="3" class="step-progress-pill text-left p-2.5 rounded-2xl border transition">
+            <div class="text-[10px] font-bold uppercase tracking-wider opacity-75">Nivel 3</div>
+            <div class="text-xs font-extrabold truncate" id="stepSummaryMode">Modo de Juego</div>
+          </button>
+          <button type="button" data-goto-step="4" class="step-progress-pill text-left p-2.5 rounded-2xl border transition">
+            <div class="text-[10px] font-bold uppercase tracking-wider opacity-75">Nivel 4</div>
+            <div class="text-xs font-extrabold truncate">Decisión Final</div>
           </button>
         </div>
+      </div>
 
-        <!-- Filtro Formato -->
-        <div>
-          <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
-            Formato del Local
+      <!-- NIVEL 1: ELEGIR EL MALL -->
+      <div id="gameStep1" class="glass-card rounded-3xl p-5 sm:p-7 space-y-5 step-fade">
+        <div class="text-center max-w-xl mx-auto space-y-1">
+          <span class="text-[11px] font-bold uppercase tracking-widest text-rose-400">Nivel 1 · Punto de Partida</span>
+          <h3 class="text-2xl sm:text-3xl font-extrabold text-white">Selecciona el Mall donde están</h3>
+          <p class="text-xs sm:text-sm text-slate-400">
+            Toca un centro comercial para cargar sus restaurantes, terrazas, cafeterías y patios de comida
+          </p>
+        </div>
+
+        <div id="mallSelectorGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <!-- Renderizado por JS -->
+        </div>
+
+        <div class="pt-3 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <p id="selectedMallSummary" class="text-xs text-slate-300"></p>
+          <button
+            type="button"
+            id="btnStep1Next"
+            class="w-full sm:w-auto spin-btn-glow bg-gradient-to-r from-rose-500 to-pink-600 text-white font-extrabold text-xs sm:text-sm px-6 py-3 rounded-2xl transition shrink-0"
+          >
+            Siguiente Paso: Elegir Antojo
+          </button>
+        </div>
+      </div>
+
+      <!-- NIVEL 2: ELEGIR QUÉ LES TINCA COMER HOY (SIN RANGO DE PRECIO POR PERSONA) -->
+      <div id="gameStep2" class="hidden glass-card rounded-3xl p-5 sm:p-7 space-y-6 step-fade">
+        <div class="text-center max-w-xl mx-auto space-y-1">
+          <span class="text-[11px] font-bold uppercase tracking-widest text-purple-400">Nivel 2 · Personalizar</span>
+          <h3 class="text-2xl sm:text-3xl font-extrabold text-white">¿Qué experiencia buscan hoy?</h3>
+          <p class="text-xs sm:text-sm text-slate-400">
+            Filtra por tipo de lugar o momento del día antes de pasar al sorteo
+          </p>
+        </div>
+
+        <!-- Sector específico del Mall (si aplica) -->
+        <div id="gameZoneWrapper" class="space-y-2">
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 text-center">
+            Sector del Mall
           </label>
-          <div class="grid grid-cols-2 gap-2" id="filterCategoryGroup">
-            <button data-category="all" class="filter-cat-btn text-xs font-bold py-2.5 px-3 rounded-xl border transition text-center">
-              Todos los formatos
+          <div id="zoneFilterBar" class="flex flex-wrap items-center justify-center gap-2">
+            <!-- Renderizado por JS -->
+          </div>
+        </div>
+
+        <!-- Tipo de Experiencia -->
+        <div class="space-y-2.5">
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 text-center">
+            Formato del Lugar
+          </label>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3" id="filterCategoryGroup">
+            <button data-category="all" class="filter-cat-btn p-4 rounded-2xl border transition text-left">
+              <div class="text-sm font-extrabold">Cualquier Formato</div>
+              <div class="text-[11px] opacity-80 mt-0.5">Participan todos los locales del mall</div>
             </button>
-            <button data-category="restaurante" class="filter-cat-btn text-xs font-bold py-2.5 px-3 rounded-xl border transition text-center">
-              Restaurante y Terraza
+            <button data-category="restaurante" class="filter-cat-btn p-4 rounded-2xl border transition text-left">
+              <div class="text-sm font-extrabold">Restaurante y Terraza</div>
+              <div class="text-[11px] opacity-80 mt-0.5">Para sentarse a comer con atención a la mesa</div>
             </button>
-            <button data-category="rapida" class="filter-cat-btn text-xs font-bold py-2.5 px-3 rounded-xl border transition text-center">
-              Comida Rápida y Patio
+            <button data-category="rapida" class="filter-cat-btn p-4 rounded-2xl border transition text-left">
+              <div class="text-sm font-extrabold">Comida Rápida y Patio</div>
+              <div class="text-[11px] opacity-80 mt-0.5">Hamburguesas, sándwiches, pizzas y bowls</div>
             </button>
-            <button data-category="dulce" class="filter-cat-btn text-xs font-bold py-2.5 px-3 rounded-xl border transition text-center">
-              Cafetería, Helado y Dulce
+            <button data-category="dulce" class="filter-cat-btn p-4 rounded-2xl border transition text-left">
+              <div class="text-sm font-extrabold">Cafetería, Helado y Dulce</div>
+              <div class="text-[11px] opacity-80 mt-0.5">Waffles, chocolates, helados, donuts y café</div>
             </button>
           </div>
         </div>
 
-        <!-- Filtro Momento / Ocasión -->
-        <div>
-          <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
-            Momento del Día
+        <!-- Momento del Día -->
+        <div class="space-y-2.5">
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 text-center">
+            Momento de la Salida
           </label>
-          <div class="flex flex-wrap gap-2" id="filterMealGroup">
-            <button data-meal="all" class="filter-meal-btn text-xs font-semibold py-1.5 px-3 rounded-full border transition">
+          <div class="flex flex-wrap justify-center gap-2" id="filterMealGroup">
+            <button data-meal="all" class="filter-meal-btn text-xs font-semibold py-2 px-4 rounded-full border transition">
               Cualquier horario
             </button>
-            <button data-meal="almuerzo" class="filter-meal-btn text-xs font-semibold py-1.5 px-3 rounded-full border transition">
+            <button data-meal="almuerzo" class="filter-meal-btn text-xs font-semibold py-2 px-4 rounded-full border transition">
               Almuerzo
             </button>
-            <button data-meal="cena" class="filter-meal-btn text-xs font-semibold py-1.5 px-3 rounded-full border transition">
-              Cena
+            <button data-meal="cena" class="filter-meal-btn text-xs font-semibold py-2 px-4 rounded-full border transition">
+              Cena en Pareja
             </button>
-            <button data-meal="dulce" class="filter-meal-btn text-xs font-semibold py-1.5 px-3 rounded-full border transition">
+            <button data-meal="dulce" class="filter-meal-btn text-xs font-semibold py-2 px-4 rounded-full border transition">
               Once y Postres
             </button>
-            <button data-meal="tragos" class="filter-meal-btn text-xs font-semibold py-1.5 px-3 rounded-full border transition">
+            <button data-meal="tragos" class="filter-meal-btn text-xs font-semibold py-2 px-4 rounded-full border transition">
               Bar y Picoteo
             </button>
           </div>
         </div>
 
-        <!-- Filtro Presupuesto -->
-        <div>
-          <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
-            Rango de Precio por Persona
+        <!-- Reglas extra del juego -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+          <label class="flex items-center justify-between bg-white/[0.03] border border-white/10 rounded-2xl p-3.5 cursor-pointer hover:bg-white/[0.06] transition">
+            <span class="text-xs font-semibold text-slate-200 pr-2">Solo nota superior a 4.6</span>
+            <input type="checkbox" id="chkHighRatedOnly" class="w-4 h-4 accent-rose-500 rounded cursor-pointer shrink-0" />
           </label>
-          <div class="grid grid-cols-5 gap-1.5" id="filterBudgetGroup">
-            <button data-budget="all" class="filter-budget-btn text-xs font-bold py-2 px-2 rounded-xl border transition text-center">
-              Todos
-            </button>
-            <button data-budget="$" class="filter-budget-btn text-xs font-bold py-2 px-2 rounded-xl border transition text-center" title="Económico: hasta $10.000 p/p">
-              $
-            </button>
-            <button data-budget="$$" class="filter-budget-btn text-xs font-bold py-2 px-2 rounded-xl border transition text-center" title="Medio: $10.000 a $16.000 p/p">
-              $$
-            </button>
-            <button data-budget="$$$" class="filter-budget-btn text-xs font-bold py-2 px-2 rounded-xl border transition text-center" title="Restaurante: $16.000 a $24.000 p/p">
-              $$$
-            </button>
-            <button data-budget="$$$$" class="filter-budget-btn text-xs font-bold py-2 px-2 rounded-xl border transition text-center" title="Premium: más de $24.000 p/p">
-              $$$$
-            </button>
-          </div>
-        </div>
-
-        <!-- Filtro Puntaje Mínimo & Opciones de Pareja -->
-        <div class="space-y-2.5 pt-2 border-t border-white/10">
-          <label class="flex items-center justify-between cursor-pointer">
-            <span class="text-xs font-semibold text-slate-300">Solo locales con nota igual o superior a 4.6</span>
-            <input type="checkbox" id="chkHighRatedOnly" class="w-4 h-4 accent-rose-500 rounded cursor-pointer" />
+          <label class="flex items-center justify-between bg-white/[0.03] border border-white/10 rounded-2xl p-3.5 cursor-pointer hover:bg-white/[0.06] transition">
+            <span class="text-xs font-semibold text-slate-200 pr-2">No repetir lugares visitados</span>
+            <input type="checkbox" id="chkExcludeVisited" class="w-4 h-4 accent-rose-500 rounded cursor-pointer shrink-0" />
           </label>
-          <label class="flex items-center justify-between cursor-pointer">
-            <span class="text-xs font-semibold text-slate-300">Excluir lugares que ya visitamos</span>
-            <input type="checkbox" id="chkExcludeVisited" class="w-4 h-4 accent-rose-500 rounded cursor-pointer" />
-          </label>
-          <label class="flex items-center justify-between cursor-pointer">
-            <span class="text-xs font-semibold text-slate-300">Sortear únicamente entre nuestros favoritos</span>
-            <input type="checkbox" id="chkOnlyFavorites" class="w-4 h-4 accent-rose-500 rounded cursor-pointer" />
+          <label class="flex items-center justify-between bg-white/[0.03] border border-white/10 rounded-2xl p-3.5 cursor-pointer hover:bg-white/[0.06] transition">
+            <span class="text-xs font-semibold text-slate-200 pr-2">Solo entre nuestros Favoritos</span>
+            <input type="checkbox" id="chkOnlyFavorites" class="w-4 h-4 accent-rose-500 rounded cursor-pointer shrink-0" />
           </label>
         </div>
 
-        <!-- Resumen de candidatos -->
-        <div class="bg-gradient-to-r from-rose-500/10 via-purple-500/10 to-indigo-500/10 border border-rose-500/20 rounded-2xl p-3.5 flex items-center justify-between">
-          <div class="text-xs text-slate-300">
-            Opciones disponibles para el sorteo:
-          </div>
-          <div id="poolCounterBadge" class="text-sm sm:text-base font-extrabold text-rose-400">
-            0 locales
-          </div>
+        <div class="pt-4 border-t border-white/10 flex items-center justify-between gap-3">
+          <button type="button" id="btnStep2Back" class="glass-pill hover:bg-white/10 text-xs sm:text-sm font-bold px-5 py-3 rounded-2xl text-slate-300 transition">
+            Volver al Mall
+          </button>
+          <button type="button" id="btnStep2Next" class="spin-btn-glow bg-gradient-to-r from-rose-500 to-pink-600 text-white font-extrabold text-xs sm:text-sm px-6 py-3 rounded-2xl transition">
+            Siguiente Paso: Modo de Juego
+          </button>
         </div>
       </div>
 
-      <!-- Columna Derecha: Motor de Decisión Aleatoria (7 cols) -->
-      <div class="lg:col-span-7 glass-card rounded-3xl p-5 sm:p-7 flex flex-col justify-between relative overflow-hidden">
-        <div class="absolute -top-24 -right-24 w-56 h-56 bg-rose-500/15 rounded-full blur-3xl pointer-events-none"></div>
-        <div class="absolute -bottom-24 -left-24 w-56 h-56 bg-purple-500/15 rounded-full blur-3xl pointer-events-none"></div>
-
-        <div class="text-center space-y-1.5 mb-5">
-          <span class="inline-block text-[11px] font-bold uppercase tracking-widest px-3 py-1 rounded-full bg-rose-500/15 text-rose-300 border border-rose-500/30">
-            Table For Two · Selección Al Azar
-          </span>
-          <h2 class="text-2xl sm:text-3xl font-extrabold text-white pt-1">
-            Nuestra Próxima Cita
-          </h2>
-          <p class="text-xs sm:text-sm text-slate-400 max-w-lg mx-auto">
-            Elijan entre un sorteo directo, un duelo entre dos finalistas o una terna de tres opciones con descarte
+      <!-- NIVEL 3: ELEGIR EL MODO DE JUEGO -->
+      <div id="gameStep3" class="hidden glass-card rounded-3xl p-5 sm:p-7 space-y-6 step-fade">
+        <div class="text-center max-w-xl mx-auto space-y-1">
+          <span class="text-[11px] font-bold uppercase tracking-widest text-rose-400">Nivel 3 · Dinámica de Pareja</span>
+          <h3 class="text-2xl sm:text-3xl font-extrabold text-white">¿Cómo quieren decidir hoy?</h3>
+          <p class="text-xs sm:text-sm text-slate-400">
+            Elijan una de las tres dinámicas para descubrir dónde irán a comer
           </p>
         </div>
 
-        <!-- Visor Principal -->
-        <div id="slotMachineBox" class="slot-window bg-[#07060c] border border-white/15 rounded-2xl p-6 sm:p-8 mb-6 relative overflow-hidden min-h-[165px] flex flex-col items-center justify-center text-center transition-all">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <!-- Modo 1: Ruleta Directa -->
+          <div class="bg-gradient-to-b from-rose-500/15 to-black/40 border border-rose-500/40 rounded-3xl p-5 flex flex-col justify-between space-y-4">
+            <div class="space-y-2">
+              <span class="text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-rose-500 text-white">
+                Opción 1 · Al Azar Total
+              </span>
+              <h4 class="text-xl font-extrabold text-white pt-1">Ruleta Directa</h4>
+              <p class="text-xs text-slate-300 leading-relaxed">
+                El sistema gira entre todas las opciones habilitadas y elige un único ganador definitivo sin discusiones.
+              </p>
+            </div>
+            <button id="btnSpinRoulette" type="button" class="w-full spin-btn-glow bg-gradient-to-r from-rose-500 to-pink-600 text-white font-extrabold text-xs sm:text-sm py-3.5 px-4 rounded-2xl transition cursor-pointer">
+              Jugar Ruleta Directa
+            </button>
+          </div>
+
+          <!-- Modo 2: Duelo 1 vs 1 -->
+          <div class="bg-gradient-to-b from-purple-500/15 to-black/40 border border-purple-500/40 rounded-3xl p-5 flex flex-col justify-between space-y-4">
+            <div class="space-y-2">
+              <span class="text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-purple-500 text-white">
+                Opción 2 · Cara a Cara
+              </span>
+              <h4 class="text-xl font-extrabold text-white pt-1">Duelo de 2 Opciones</h4>
+              <p class="text-xs text-slate-300 leading-relaxed">
+                El sistema saca 2 finalistas al azar del mall y ustedes eligen cuál de los dos gana la salida de hoy.
+              </p>
+            </div>
+            <button id="btnBattleMode" type="button" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-extrabold text-xs sm:text-sm py-3.5 px-4 rounded-2xl transition cursor-pointer">
+              Jugar Duelo (2 Opciones)
+            </button>
+          </div>
+
+          <!-- Modo 3: Terna con Descarte -->
+          <div class="bg-gradient-to-b from-sky-500/15 to-black/40 border border-sky-500/40 rounded-3xl p-5 flex flex-col justify-between space-y-4">
+            <div class="space-y-2">
+              <span class="text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-sky-500 text-white">
+                Opción 3 · Turno por Turno
+              </span>
+              <h4 class="text-xl font-extrabold text-white pt-1">Terna y Descarte</h4>
+              <p class="text-xs text-slate-300 leading-relaxed">
+                Salen 3 locales al azar: primero Dylan descarta 1 que no quiera, y luego Maria elige el ganador entre los 2 restantes.
+              </p>
+            </div>
+            <button id="btnTrioMode" type="button" class="w-full bg-sky-600 hover:bg-sky-500 text-white font-extrabold text-xs sm:text-sm py-3.5 px-4 rounded-2xl transition cursor-pointer">
+              Jugar Terna (3 y Descarte)
+            </button>
+          </div>
+        </div>
+
+        <div class="pt-3 border-t border-white/10 flex items-center justify-between">
+          <button type="button" id="btnStep3Back" class="glass-pill hover:bg-white/10 text-xs sm:text-sm font-bold px-5 py-2.5 rounded-2xl text-slate-300 transition">
+            Volver a Preferencias
+          </button>
+          <button type="button" id="btnResetFilters" class="text-xs text-rose-400 hover:text-rose-300 font-semibold underline">
+            Restablecer todos los filtros
+          </button>
+        </div>
+      </div>
+
+      <!-- NIVEL 4: PANTALLA DE SORTEO Y RESULTADO DEL JUEGO -->
+      <div id="gameStep4" class="hidden glass-card rounded-3xl p-5 sm:p-7 space-y-6 step-fade">
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-3">
+          <div>
+            <span class="text-[11px] font-bold uppercase tracking-widest text-rose-400">Nivel 4 · Resolución</span>
+            <h3 class="text-lg sm:text-xl font-extrabold text-white">Resultado de la Partida</h3>
+          </div>
+          <div class="flex items-center gap-2">
+            <button type="button" id="btnBackToModes" class="glass-pill hover:bg-white/15 text-xs font-bold px-3.5 py-2 rounded-xl text-slate-200 transition">
+              Cambiar Modo de Juego
+            </button>
+          </div>
+        </div>
+
+        <!-- Visor de Sorteo (se muestra cuando juega Ruleta Directa) -->
+        <div id="slotMachineBox" class="slot-window bg-[#07060c] border border-white/15 rounded-2xl p-6 sm:p-8 relative overflow-hidden min-h-[150px] flex flex-col items-center justify-center text-center transition-all">
           <div id="slotIdleState" class="space-y-2 max-w-lg">
             <div class="text-[11px] font-bold uppercase tracking-widest text-rose-400" id="slotBadge">
-              Sistema Listo
+              Sorteo en Curso
             </div>
             <div class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight" id="slotTitle">
-              ¿Dónde vamos a comer hoy?
+              Preparando opciones...
             </div>
             <div class="text-xs sm:text-sm text-slate-400" id="slotSubtitle">
-              Selecciona tu mall arriba y presiona uno de los modos de decisión
+              Seleccionando al azar
             </div>
           </div>
         </div>
 
-        <!-- Botones de Acción del Generador -->
-        <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
-          <button id="btnSpinRoulette" class="sm:col-span-6 spin-btn-glow bg-gradient-to-r from-rose-500 via-pink-500 to-purple-600 text-white font-extrabold text-sm sm:text-base py-4 px-5 rounded-2xl flex items-center justify-center cursor-pointer">
-            <span id="btnSpinText">Generar Decisión Al Azar</span>
-          </button>
-          <button id="btnBattleMode" class="sm:col-span-3 glass-pill hover:bg-white/15 text-slate-200 font-bold text-xs sm:text-sm py-3.5 px-3 rounded-2xl transition text-center" title="Sortea 2 opciones al azar para elegir el ganador">
-            Duelo (2 Opciones)
-          </button>
-          <button id="btnTrioMode" class="sm:col-span-3 glass-pill hover:bg-white/15 text-slate-200 font-bold text-xs sm:text-sm py-3.5 px-3 rounded-2xl transition text-center" title="Sortea 3 opciones: uno descarta una y el otro elige entre las 2 restantes">
-            Terna (3 y Descarte)
-          </button>
-        </div>
-
-        <!-- Contenedor del Resultado (Ganador, Duelo o Terna) -->
-        <div id="winnerResultContainer" class="hidden mt-6 pt-6 border-t border-white/15">
-          <!-- Renderizado dinámicamente -->
+        <!-- Contenedor Dinámico del Ganador, Duelo o Terna -->
+        <div id="winnerResultContainer">
+          <!-- Renderizado por JS -->
         </div>
       </div>
 
     </section>
 
-    <!-- SECCIÓN EXCLUSIVA: LUGARES QUE YA HEMOS IDO Y PERFILES DE DYLAN Y MARIA -->
-    <section id="visited-section" aria-labelledby="visited-section-title" class="space-y-5 pt-4 scroll-mt-24">
+    <!-- =========================================================================
+         APARTADO 2: LUGARES VISITADOS Y PERFILES DE DYLAN Y MARIA
+         ========================================================================= -->
+    <section id="tabPanelVisited" class="hidden space-y-6 step-fade">
       <div class="glass-card rounded-3xl p-5 sm:p-7 border border-rose-500/25 space-y-6">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/10 pb-5">
           <div>
-            <span class="text-[11px] font-bold uppercase tracking-widest text-rose-400">Sección Exclusiva · Nuestro Historial</span>
-            <h2 id="visited-section-title" class="text-xl sm:text-2xl font-extrabold text-white mt-0.5">
+            <span class="text-[11px] font-bold uppercase tracking-widest text-rose-400">Apartado Exclusivo · Nuestra Bitácora</span>
+            <h2 class="text-xl sm:text-2xl font-extrabold text-white mt-0.5">
               Lugares a los que Ya Hemos Ido
             </h2>
             <p class="text-xs sm:text-sm text-slate-400 mt-0.5">
-              Registro exclusivo de nuestras salidas con perfiles separados para <strong class="text-white">Dylan</strong> y <strong class="text-white">Maria</strong>, calificación en estrellas de cada uno y evaluación de precio.
+              Perfiles de <strong class="text-white">Dylan</strong> y <strong class="text-white">Maria</strong> con las reseñas, nota en estrellas y evaluación de precio de cada lugar que visitamos.
             </p>
           </div>
           <div class="flex items-center gap-2.5 shrink-0">
-            <button id="btnAddVisitedFromSection" class="spin-btn-glow bg-gradient-to-r from-rose-500 via-pink-500 to-purple-600 text-white font-extrabold text-xs sm:text-sm px-5 py-3 rounded-2xl transition cursor-pointer">
+            <button id="btnAddVisitedFromSection" type="button" class="spin-btn-glow bg-gradient-to-r from-rose-500 via-pink-500 to-purple-600 text-white font-extrabold text-xs sm:text-sm px-5 py-3 rounded-2xl transition cursor-pointer">
               Agregar Lugar al que Fuimos
             </button>
           </div>
@@ -334,7 +454,7 @@
 
         <!-- Perfiles de Dylan y Maria -->
         <div id="coupleProfilesSummary" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <!-- Renderizado por JS: Tarjeta Perfil Dylan, Tarjeta Perfil Maria y Resumen de Pareja -->
+          <!-- Renderizado por JS -->
         </div>
 
         <!-- Listado de Lugares Visitados con Reseñas Duales -->
@@ -344,50 +464,66 @@
       </div>
     </section>
 
-    <!-- PASO 3: Directorio Completo de Locales del Mall Seleccionado -->
-    <section aria-labelledby="directory-title" class="space-y-4 pt-2">
-      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 glass-card p-4 sm:p-5 rounded-2xl">
-        <div>
-          <div class="flex items-center gap-2.5">
-            <h2 id="directory-title" class="text-lg sm:text-xl font-extrabold text-white">
-              Directorio Completo de Locales
-            </h2>
-            <span id="directoryCountBadge" class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30">0</span>
+    <!-- =========================================================================
+         APARTADO 3: CATÁLOGO COMPLETO DE LOCALES (ORDENADO EN SU PROPIA PESTAÑA)
+         ========================================================================= -->
+    <section id="tabPanelCatalog" class="hidden space-y-5 step-fade">
+      <div class="glass-card p-5 sm:p-6 rounded-3xl space-y-4">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <span class="text-[11px] font-bold uppercase tracking-widest text-purple-400">Apartado de Exploración</span>
+            <div class="flex items-center gap-2.5 mt-0.5">
+              <h2 class="text-xl sm:text-2xl font-extrabold text-white">
+                Catálogo de Locales por Mall
+              </h2>
+              <span id="directoryCountBadge" class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30">0</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-0.5">
+              Explora todos los locales guardados, lee sus reseñas o agrega uno nuevo a la base de datos.
+            </p>
           </div>
-          <p class="text-xs text-slate-400 mt-0.5">
-            Consulta información detallada, especialidades, precios estimados y calificaciones de Uber Eats, Google Maps y redes sociales.
-          </p>
+
+          <div class="flex flex-wrap items-center gap-2">
+            <button id="btnOpenAddModal" type="button" class="bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-200 text-xs font-bold px-3.5 py-2 rounded-xl transition">
+              Sumar Nuevo Local al Catálogo
+            </button>
+            <button id="btnOpenHistoryMobile" type="button" class="glass-pill hover:bg-white/10 text-xs font-semibold px-3.5 py-2 rounded-xl transition text-slate-300">
+              Ver Favoritos y Vetados
+            </button>
+          </div>
         </div>
 
-        <!-- Buscador y Ordenamiento -->
-        <div class="flex flex-col sm:flex-row gap-2.5">
+        <!-- Filtros del Catálogo: Selector de Mall + Buscador + Orden -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-white/10">
           <div>
+            <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Filtrar por Mall</label>
+            <select id="catalogMallSelect" class="w-full bg-black/40 border border-white/15 rounded-xl px-3 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-rose-500">
+              <!-- Renderizado por JS -->
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Buscar por nombre o plato</label>
             <input
               type="text"
               id="searchInput"
-              placeholder="Buscar local, comida, plato o zona..."
-              class="w-full sm:w-64 bg-black/40 border border-white/15 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-rose-500"
+              placeholder="Ej: sushi, burger, pasta, QINTO..."
+              class="w-full bg-black/40 border border-white/15 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-rose-500"
             />
           </div>
-
-          <select
-            id="sortSelect"
-            aria-label="Ordenar locales"
-            class="bg-black/40 border border-white/15 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-200 focus:outline-none focus:border-rose-500"
-          >
-            <option value="stars-desc">Ordenar: Mejor calificación general</option>
-            <option value="ubereats-desc">Ordenar: Mejor nota en Uber Eats</option>
-            <option value="google-desc">Ordenar: Mejor nota en Google Maps</option>
-            <option value="name-asc">Ordenar: Nombre (A - Z)</option>
-            <option value="price-asc">Ordenar: Menor a mayor precio</option>
-            <option value="price-desc">Ordenar: Mayor a menor precio</option>
-          </select>
+          <div>
+            <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Ordenar por</label>
+            <select
+              id="sortSelect"
+              aria-label="Ordenar locales"
+              class="w-full bg-black/40 border border-white/15 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-200 focus:outline-none focus:border-rose-500"
+            >
+              <option value="stars-desc">Mejor calificación general</option>
+              <option value="ubereats-desc">Mejor nota en Uber Eats</option>
+              <option value="google-desc">Mejor nota en Google Maps</option>
+              <option value="name-asc">Nombre (A - Z)</option>
+            </select>
+          </div>
         </div>
-      </div>
-
-      <!-- Filtro por Zona dentro del Mall -->
-      <div id="zoneFilterBar" class="hidden flex-wrap items-center gap-2">
-        <!-- Renderizado por JS -->
       </div>
 
       <!-- Grilla de Tarjetas de Restaurantes -->
@@ -408,16 +544,16 @@
     </div>
   </div>
 
-  <!-- MODAL: Bitácora (Visitados, Favoritos y Vetados) -->
+  <!-- MODAL: Favoritos, Vetados y Nombres -->
   <div id="historyModal" class="fixed inset-0 z-50 hidden items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm">
     <div class="glass-card border border-white/20 rounded-3xl max-w-2xl w-full p-5 sm:p-7 relative max-h-[88vh] flex flex-col">
       <div class="flex items-center justify-between border-b border-white/10 pb-4 mb-4">
         <div>
           <h3 class="text-xl font-extrabold text-white">
-            Bitácora de Salidas y Preferencias
+            Favoritos, Vetados y Perfiles
           </h3>
           <p class="text-xs text-slate-400">
-            Personaliza los nombres y administra lugares favoritos, visitados o descartados del sorteo.
+            Administra los locales favoritos o descartados del juego.
           </p>
         </div>
         <button id="btnCloseHistoryModal" class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-rose-500 text-xs text-white font-bold transition">
@@ -425,12 +561,11 @@
         </button>
       </div>
 
-      <!-- Nombres -->
       <div class="bg-white/5 border border-white/10 rounded-2xl p-3.5 mb-4 flex flex-col sm:flex-row items-center gap-2.5">
-        <span class="text-xs font-bold text-rose-300 whitespace-nowrap">Nombres:</span>
-        <input id="inputPartner1" type="text" placeholder="Nombre 1 (ej. Dylan)" class="w-full sm:w-40 bg-black/40 border border-white/15 rounded-xl px-3 py-1.5 text-xs text-white" />
+        <span class="text-xs font-bold text-rose-300 whitespace-nowrap">Perfiles:</span>
+        <input id="inputPartner1" type="text" placeholder="Dylan" class="w-full sm:w-40 bg-black/40 border border-white/15 rounded-xl px-3 py-1.5 text-xs text-white" />
         <span class="text-rose-400 font-bold">y</span>
-        <input id="inputPartner2" type="text" placeholder="Nombre 2 (ej. Pareja)" class="w-full sm:w-40 bg-black/40 border border-white/15 rounded-xl px-3 py-1.5 text-xs text-white" />
+        <input id="inputPartner2" type="text" placeholder="Maria" class="w-full sm:w-40 bg-black/40 border border-white/15 rounded-xl px-3 py-1.5 text-xs text-white" />
         <button id="btnSaveCoupleNames" class="w-full sm:w-auto bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold px-3.5 py-1.5 rounded-xl transition">
           Guardar
         </button>
@@ -440,12 +575,12 @@
     </div>
   </div>
 
-  <!-- MODAL: Registrar o Editar Lugar al que Fuimos (Reseñas de Dylan y Maria + Precio) -->
+  <!-- MODAL: Registrar o Editar Lugar al que Fuimos (Perfiles de Dylan y Maria + Puntaje de Precio) -->
   <div id="visitReviewModal" class="fixed inset-0 z-50 hidden items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-sm overflow-y-auto">
     <div class="glass-card border border-rose-500/30 rounded-3xl max-w-2xl w-full p-5 sm:p-7 relative my-8 max-h-[92vh] overflow-y-auto">
       <div class="flex items-center justify-between border-b border-white/10 pb-3.5 mb-5">
         <div>
-          <span class="text-[10px] font-bold uppercase tracking-widest text-rose-400">Bitácora de Citas · Dylan y Maria</span>
+          <span class="text-[10px] font-bold uppercase tracking-widest text-rose-400">Evaluación de Salida · Dylan y Maria</span>
           <h3 id="visitModalTitle" class="text-lg sm:text-xl font-extrabold text-white mt-0.5">
             Registrar Lugar al que Fuimos
           </h3>
@@ -478,24 +613,21 @@
           </div>
         </div>
 
-        <!-- Mall, Evaluación de Precio y Gasto -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-white/[0.03] border border-white/10 rounded-2xl p-3.5">
+        <!-- Mall y Puntaje de Precio -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-white/[0.03] border border-white/10 rounded-2xl p-3.5">
           <div>
             <label class="block text-slate-300 font-semibold mb-1">Mall o Ubicación</label>
             <input type="text" id="visitMallName" placeholder="Ej: Costanera Center (QINTO)" class="w-full bg-black/50 border border-white/15 rounded-xl px-3 py-2 text-white" />
           </div>
           <div>
-            <label class="block text-amber-300 font-bold mb-1">Calificación de Precio *</label>
+            <label class="block text-amber-300 font-bold mb-1">Puntaje de Precio (Calidad / Precio) *</label>
             <select id="visitPriceLevel" required class="w-full bg-black/50 border border-white/15 rounded-xl px-3 py-2 text-white">
-              <option value="$">$ · Económico (Muy barato)</option>
-              <option value="$$" selected>$$ · Moderado (Justo calidad/precio)</option>
-              <option value="$$$">$$$ · Restaurante (Medio-Alto)</option>
-              <option value="$$$$">$$$$ · Premium (Caro / Especial)</option>
+              <option value="5.0 Estrellas (Muy Económico / Excelente Valor)">5.0 Estrellas · Muy Económico / Excelente Valor</option>
+              <option value="4.5 Estrellas (Buen Precio)" selected>4.5 Estrellas · Buen Precio</option>
+              <option value="4.0 Estrellas (Precio Justo)">4.0 Estrellas · Precio Justo</option>
+              <option value="3.0 Estrellas (Algo Caro)">3.0 Estrellas · Algo Caro</option>
+              <option value="2.0 Estrellas (Muy Caro para lo que es)">2.0 Estrellas · Muy Caro</option>
             </select>
-          </div>
-          <div>
-            <label class="block text-amber-300 font-bold mb-1">Total Gastado o Precio p/p</label>
-            <input type="text" id="visitPriceAmount" placeholder="Ej: $32.000 entre los dos" class="w-full bg-black/50 border border-white/15 rounded-xl px-3 py-2 text-white" />
           </div>
         </div>
 
@@ -506,29 +638,29 @@
           <div class="bg-sky-500/10 border border-sky-500/30 rounded-2xl p-4 space-y-3">
             <div class="flex items-center justify-between border-b border-sky-500/20 pb-2">
               <div>
-                <span class="text-[10px] font-bold uppercase tracking-widest text-sky-400">Perfil 1</span>
-                <h4 class="text-base font-extrabold text-white">Reseña de Dylan</h4>
+                <span class="text-[10px] font-bold uppercase tracking-widest text-sky-400">Perfil Dylan</span>
+                <h4 class="text-base font-extrabold text-white">Evaluación de Dylan</h4>
               </div>
               <div class="text-right">
-                <span class="text-[10px] uppercase font-bold text-slate-400 block">Estrellas Dylan</span>
+                <span class="text-[10px] uppercase font-bold text-slate-400 block">Puntaje Estrellas</span>
                 <select id="visitDylanStars" class="bg-black/60 border border-sky-500/40 rounded-lg px-2.5 py-1 text-xs font-extrabold text-amber-400">
-                  <option value="5">5.0 Estrellas (Excelente)</option>
-                  <option value="4.5">4.5 Estrellas (Muy Bueno)</option>
-                  <option value="4">4.0 Estrellas (Bueno)</option>
-                  <option value="3.5">3.5 Estrellas (Regular-Bueno)</option>
-                  <option value="3">3.0 Estrellas (Normal)</option>
-                  <option value="2">2.0 Estrellas (Flojo)</option>
-                  <option value="1">1.0 Estrella (Malo)</option>
+                  <option value="5">5.0 Estrellas</option>
+                  <option value="4.5">4.5 Estrellas</option>
+                  <option value="4">4.0 Estrellas</option>
+                  <option value="3.5">3.5 Estrellas</option>
+                  <option value="3">3.0 Estrellas</option>
+                  <option value="2">2.0 Estrellas</option>
+                  <option value="1">1.0 Estrella</option>
                 </select>
               </div>
             </div>
             <div>
               <label class="block text-xs text-slate-300 font-semibold mb-1">¿Qué pidió Dylan?</label>
-              <input type="text" id="visitDylanDish" placeholder="Ej: Lomo Saltado / Doble Burger" class="w-full bg-black/40 border border-white/15 rounded-xl px-3 py-1.5 text-xs text-white" />
+              <input type="text" id="visitDylanDish" placeholder="Ej: Lomo Saltado / Hamburguesa" class="w-full bg-black/40 border border-white/15 rounded-xl px-3 py-1.5 text-xs text-white" />
             </div>
             <div>
-              <label class="block text-xs text-slate-300 font-semibold mb-1">Opinión de Dylan *</label>
-              <textarea id="visitDylanReview" rows="3" required placeholder="Escribe qué le pareció la comida, porciones y atención a Dylan..." class="w-full bg-black/40 border border-white/15 rounded-xl px-3 py-2 text-xs text-white"></textarea>
+              <label class="block text-xs text-slate-300 font-semibold mb-1">Reseña de Dylan *</label>
+              <textarea id="visitDylanReview" rows="3" required placeholder="Qué le pareció la comida y el lugar a Dylan..." class="w-full bg-black/40 border border-white/15 rounded-xl px-3 py-2 text-xs text-white"></textarea>
             </div>
           </div>
 
@@ -536,29 +668,29 @@
           <div class="bg-rose-500/10 border border-rose-500/30 rounded-2xl p-4 space-y-3">
             <div class="flex items-center justify-between border-b border-rose-500/20 pb-2">
               <div>
-                <span class="text-[10px] font-bold uppercase tracking-widest text-rose-400">Perfil 2</span>
-                <h4 class="text-base font-extrabold text-white">Reseña de Maria</h4>
+                <span class="text-[10px] font-bold uppercase tracking-widest text-rose-400">Perfil Maria</span>
+                <h4 class="text-base font-extrabold text-white">Evaluación de Maria</h4>
               </div>
               <div class="text-right">
-                <span class="text-[10px] uppercase font-bold text-slate-400 block">Estrellas Maria</span>
+                <span class="text-[10px] uppercase font-bold text-slate-400 block">Puntaje Estrellas</span>
                 <select id="visitMariaStars" class="bg-black/60 border border-rose-500/40 rounded-lg px-2.5 py-1 text-xs font-extrabold text-amber-400">
-                  <option value="5">5.0 Estrellas (Excelente)</option>
-                  <option value="4.5">4.5 Estrellas (Muy Bueno)</option>
-                  <option value="4">4.0 Estrellas (Bueno)</option>
-                  <option value="3.5">3.5 Estrellas (Regular-Bueno)</option>
-                  <option value="3">3.0 Estrellas (Normal)</option>
-                  <option value="2">2.0 Estrellas (Flojo)</option>
-                  <option value="1">1.0 Estrella (Malo)</option>
+                  <option value="5">5.0 Estrellas</option>
+                  <option value="4.5">4.5 Estrellas</option>
+                  <option value="4">4.0 Estrellas</option>
+                  <option value="3.5">3.5 Estrellas</option>
+                  <option value="3">3.0 Estrellas</option>
+                  <option value="2">2.0 Estrellas</option>
+                  <option value="1">1.0 Estrella</option>
                 </select>
               </div>
             </div>
             <div>
               <label class="block text-xs text-slate-300 font-semibold mb-1">¿Qué pidió Maria?</label>
-              <input type="text" id="visitMariaDish" placeholder="Ej: Ceviche / Fettuccine / Waffle" class="w-full bg-black/40 border border-white/15 rounded-xl px-3 py-1.5 text-xs text-white" />
+              <input type="text" id="visitMariaDish" placeholder="Ej: Ceviche / Pasta / Waffle" class="w-full bg-black/40 border border-white/15 rounded-xl px-3 py-1.5 text-xs text-white" />
             </div>
             <div>
-              <label class="block text-xs text-slate-300 font-semibold mb-1">Opinión de Maria *</label>
-              <textarea id="visitMariaReview" rows="3" required placeholder="Escribe qué le pareció el sabor, ambiente y postre a Maria..." class="w-full bg-black/40 border border-white/15 rounded-xl px-3 py-2 text-xs text-white"></textarea>
+              <label class="block text-xs text-slate-300 font-semibold mb-1">Reseña de Maria *</label>
+              <textarea id="visitMariaReview" rows="3" required placeholder="Qué le pareció el sabor y ambiente a Maria..." class="w-full bg-black/40 border border-white/15 rounded-xl px-3 py-2 text-xs text-white"></textarea>
             </div>
           </div>
 
@@ -569,7 +701,7 @@
             Cancelar
           </button>
           <button type="submit" class="bg-gradient-to-r from-rose-500 via-pink-500 to-purple-600 text-white font-extrabold text-xs sm:text-sm px-6 py-2.5 rounded-xl shadow-lg shadow-rose-500/25 transition">
-            Guardar Nuestra Reseña
+            Guardar Reseñas de Dylan y Maria
           </button>
         </div>
       </form>
@@ -580,7 +712,7 @@
   <div id="addModal" class="fixed inset-0 z-50 hidden items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm">
     <div class="glass-card border border-white/20 rounded-3xl max-w-lg w-full p-5 sm:p-6 relative max-h-[90vh] overflow-y-auto">
       <div class="flex items-center justify-between border-b border-white/10 pb-3 mb-4">
-        <h3 class="text-lg font-extrabold text-white">Agregar Nuevo Local</h3>
+        <h3 class="text-lg font-extrabold text-white">Agregar Nuevo Local al Catálogo</h3>
         <button id="btnCloseAddModal" class="px-3 py-1 rounded-xl bg-white/10 hover:bg-rose-500 text-xs text-white font-bold">Cerrar</button>
       </div>
       <form id="formAddPlace" class="space-y-3 text-xs sm:text-sm">
