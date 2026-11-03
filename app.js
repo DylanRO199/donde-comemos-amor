@@ -1,5 +1,5 @@
 // ============================================================================
-// RENDEZ-VOUS À DEUX · DYLAN & MARIA (Edición Minimalista, Sin Textos Explicativos)
+// ¿DÓNDE COMEMOS, AMOR? · DYLAN & MARIA
 // ============================================================================
 
 const STORAGE_KEYS = {
