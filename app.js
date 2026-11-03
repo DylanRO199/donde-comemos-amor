@@ -709,7 +709,16 @@ function runDuel() {
   });
 }
 
-// Terna de 3 Opciones con Descarte
+// ============================================================================
+// MODOS DE DESCARTE POR TURNOS (DYLAN & MARIA)
+// ============================================================================
+let turnStarter = "Dylan"; // "Dylan" o "Maria"
+
+function toggleTurnStarter() {
+  turnStarter = turnStarter === "Dylan" ? "Maria" : "Dylan";
+}
+
+// Descarte de 3 Opciones (Terna por Turnos)
 function runTrio() {
   const candidates = getFilteredCandidates();
   goToStep(4);
@@ -722,7 +731,7 @@ function runTrio() {
     if (container) {
       container.innerHTML = `
         <div class="text-center py-4 text-xs text-slate-400">
-          Se necesitan al menos 3 opciones para jugar a la terna.
+          Se necesitan al menos 3 opciones para jugar al descarte.
           <button type="button" id="btnTrioBack" class="block mx-auto mt-2 text-rose-300 font-bold underline cursor-pointer">Volver al Paso 2</button>
         </div>
       `;
@@ -738,13 +747,38 @@ function runTrio() {
   function render() {
     if (!container) return;
 
+    const firstPerson = turnStarter;
+    const secondPerson = turnStarter === "Dylan" ? "Maria" : "Dylan";
+    const currentPerson = !vetoedId ? firstPerson : secondPerson;
+    const isDylan = currentPerson === "Dylan";
+
     container.innerHTML = `
-      <div class="glass-card rounded-2xl p-4 sm:p-5 border border-sky-500/30 space-y-4">
-        <div class="flex items-center justify-between">
-          <h3 class="text-base font-extrabold text-white">
-            ${!vetoedId ? "Descartar 1 opción" : "Elegir ganador final"}
-          </h3>
-          <button type="button" id="btnTrioReroll" class="text-xs text-slate-400 hover:text-white underline cursor-pointer">Otra terna</button>
+      <div class="glass-card rounded-2xl p-4 sm:p-5 border ${isDylan ? 'border-sky-500/40' : 'border-rose-500/40'} space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-3">
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${
+                isDylan
+                  ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
+                  : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+              }">
+                TURNO DE ${currentPerson.toUpperCase()}
+              </span>
+              <button type="button" id="btnToggleTrioStarter" class="text-[10px] text-slate-400 hover:text-white underline cursor-pointer">
+                (Cambiar a ${secondPerson})
+              </button>
+            </div>
+            <h3 class="text-base font-extrabold text-white">
+              ${
+                !vetoedId
+                  ? `${firstPerson}: Descarta 1 local que no quieras hoy`
+                  : `${secondPerson}: ¡Elige el ganador de la cita entre los 2 finalistas!`
+              }
+            </h3>
+          </div>
+          <button type="button" id="btnTrioReroll" class="text-xs text-slate-400 hover:text-white underline cursor-pointer">
+            Otra terna
+          </button>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -754,30 +788,36 @@ function runTrio() {
               const isVetoed = vetoedId === item.id;
               return `
               <div class="bg-black/40 border rounded-xl p-3.5 flex flex-col justify-between space-y-3 transition ${
-                isVetoed ? "border-white/5 opacity-30" : "border-white/10 hover:border-sky-500/40"
+                isVetoed
+                  ? "border-white/5 opacity-25 grayscale scale-95"
+                  : !vetoedId
+                  ? "border-white/10 hover:border-sky-500/40"
+                  : "border-amber-400/60 bg-amber-500/10 shadow-[0_0_12px_rgba(245,158,11,0.2)]"
               }">
                 <div>
                   <div class="flex items-center justify-between mb-1">
-                    <span class="text-[10px] font-bold text-sky-400">${mall ? mall.shortName : ""}</span>
+                    <span class="text-[10px] font-bold text-slate-400">${mall ? mall.shortName : "Santiago"}</span>
                     <span class="text-xs font-bold text-amber-300">${item.rating.toFixed(1)} ★</span>
                   </div>
                   <h4 class="text-base font-extrabold text-white">${item.name}</h4>
                   <p class="text-xs text-rose-300">${item.cuisine}</p>
-                  <p class="text-xs text-slate-400 mt-1 truncate">${item.mustTry}</p>
+                  <p class="text-xs text-slate-400 mt-1 line-clamp-2">${item.mustTry}</p>
                 </div>
+                <div>
                 ${
                   isVetoed
-                    ? `<span class="text-[11px] text-center text-slate-500 block py-1.5 font-bold">Descartado</span>`
+                    ? `<span class="text-[10px] text-center text-slate-500 block py-1.5 font-bold uppercase tracking-wider">Descartado por ${firstPerson}</span>`
                     : !vetoedId
                     ? `<button type="button" data-veto="${item.id}"
-                        class="w-full bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-500/40 text-xs font-bold py-1.5 rounded-lg transition cursor-pointer">
-                        Descartar
+                        class="w-full ${isDylan ? 'bg-sky-500/25 text-sky-200 border-sky-500/40 hover:bg-sky-500/35' : 'bg-rose-500/25 text-rose-200 border-rose-500/40 hover:bg-rose-500/35'} border text-xs font-bold py-2 rounded-lg transition cursor-pointer">
+                        ${firstPerson}: Descartar este
                       </button>`
                     : `<button type="button" data-pick="${item.id}"
-                        class="w-full bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold py-1.5 rounded-lg transition cursor-pointer">
-                        Elegir
+                        class="w-full bg-gradient-to-r from-amber-500 to-rose-600 hover:opacity-95 text-white text-xs font-extrabold py-2 rounded-lg transition cursor-pointer shadow-md">
+                        ${secondPerson}: ¡Elegir Ganador!
                       </button>`
                 }
+                </div>
               </div>
             `;
             })
@@ -787,11 +827,16 @@ function runTrio() {
     `;
 
     document.getElementById("btnTrioReroll")?.addEventListener("click", runTrio);
+    document.getElementById("btnToggleTrioStarter")?.addEventListener("click", () => {
+      toggleTurnStarter();
+      vetoedId = null;
+      render();
+    });
 
     container.querySelectorAll("button[data-veto]").forEach((b) => {
       b.addEventListener("click", () => {
         vetoedId = b.getAttribute("data-veto");
-        playTick(300);
+        playTick(320);
         render();
       });
     });
@@ -813,7 +858,7 @@ function runTrio() {
   render();
 }
 
-// Descarte de 5 Locales (Top 5 con descarte progresivo)
+// Descarte de 5 Locales por Turnos (Dylan descarta 1, Maria descarta 1, y así sucesivamente)
 function runFiveMode() {
   const candidates = getFilteredCandidates();
   goToStep(4);
@@ -839,6 +884,7 @@ function runFiveMode() {
   const shuffled = [...candidates].sort(() => Math.random() - 0.5);
   const pool = shuffled.slice(0, countToPick);
   const discardedIds = new Set();
+  const discardOrder = []; // Guarda quién descartó qué
 
   function render() {
     if (!container) return;
@@ -856,17 +902,43 @@ function runFiveMode() {
       return;
     }
 
+    const firstPerson = turnStarter;
+    const secondPerson = turnStarter === "Dylan" ? "Maria" : "Dylan";
+    const turnNumber = discardedIds.size; // 0, 1, 2...
+    // Turnos alternados: 0 -> primero, 1 -> segundo, 2 -> primero, 3 -> segundo
+    const currentPerson = turnNumber % 2 === 0 ? firstPerson : secondPerson;
+    const nextPerson = currentPerson === firstPerson ? secondPerson : firstPerson;
+    const isDylan = currentPerson === "Dylan";
     const isFinalTwo = remaining.length === 2;
 
     container.innerHTML = `
-      <div class="glass-card rounded-2xl p-4 sm:p-5 border border-amber-500/30 space-y-4">
+      <div class="glass-card rounded-2xl p-4 sm:p-5 border ${isFinalTwo ? 'border-amber-400/50' : isDylan ? 'border-sky-500/40' : 'border-rose-500/40'} space-y-4">
         <div class="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-3">
           <div>
-            <div class="text-xs font-bold text-amber-400 uppercase tracking-wider">
-              ${isFinalTwo ? "¡Finalistas cara a cara!" : `Descarte Top ${countToPick}`}
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${
+                isFinalTwo
+                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                  : isDylan
+                  ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
+                  : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+              }">
+                ${isFinalTwo ? `FINAL · TURNO DE ${currentPerson.toUpperCase()}` : `TURNO DE ${currentPerson.toUpperCase()} (${turnNumber + 1} de ${countToPick - 1})`}
+              </span>
+              ${
+                turnNumber === 0
+                  ? `<button type="button" id="btnToggleFiveStarter" class="text-[10px] text-slate-400 hover:text-white underline cursor-pointer">
+                      (Empieza ${secondPerson})
+                    </button>`
+                  : ""
+              }
             </div>
-            <h3 class="text-base font-extrabold text-white mt-0.5">
-              ${isFinalTwo ? "Elijan su ganador o descarten 1 más" : `Quedan ${remaining.length} opciones · Vayan descartando las que no quieran`}
+            <h3 class="text-base font-extrabold text-white">
+              ${
+                isFinalTwo
+                  ? `${currentPerson}: ¡Elige el local ganador o descarta 1 más!`
+                  : `${currentPerson}: Descarta 1 local que no te tinque hoy (luego le toca a ${nextPerson})`
+              }
             </h3>
           </div>
           <button type="button" id="btnFiveReroll" class="text-xs text-slate-400 hover:text-white underline cursor-pointer">
@@ -879,6 +951,7 @@ function runFiveMode() {
             .map((item) => {
               const mall = getMallById(item.mallId);
               const isDiscarded = discardedIds.has(item.id);
+              const whoDiscarded = discardOrder.find((d) => d.id === item.id)?.by || "";
 
               return `
               <div class="bg-black/40 border rounded-xl p-3 flex flex-col justify-between space-y-2.5 transition ${
@@ -886,11 +959,11 @@ function runFiveMode() {
                   ? "border-white/5 opacity-25 grayscale scale-95"
                   : isFinalTwo
                   ? "border-amber-400/60 bg-amber-500/10 shadow-[0_0_12px_rgba(245,158,11,0.2)]"
-                  : "border-white/10 hover:border-amber-500/40"
+                  : "border-white/10 hover:border-white/20"
               }">
                 <div>
                   <div class="flex items-center justify-between gap-1 mb-1">
-                    <span class="text-[10px] font-bold text-slate-400 truncate">${mall ? mall.shortName : ""}</span>
+                    <span class="text-[10px] font-bold text-slate-400 truncate">${mall ? mall.shortName : "Santiago"}</span>
                     <span class="text-xs font-bold text-amber-300 shrink-0">${item.rating.toFixed(1)} ★</span>
                   </div>
                   <h4 class="text-sm font-extrabold text-white leading-snug line-clamp-1">${item.name}</h4>
@@ -901,22 +974,22 @@ function runFiveMode() {
                 <div class="pt-1">
                   ${
                     isDiscarded
-                      ? `<span class="text-[10px] text-center text-slate-500 block py-1.5 font-bold uppercase tracking-wider">Eliminado</span>`
+                      ? `<span class="text-[10px] text-center text-slate-500 block py-1.5 font-bold uppercase tracking-wider">Descartado por ${whoDiscarded}</span>`
                       : isFinalTwo
                       ? `
                         <button type="button" data-pick-five="${item.id}"
-                          class="w-full bg-gradient-to-r from-amber-500 to-rose-600 hover:opacity-95 text-white text-xs font-bold py-2 rounded-lg transition cursor-pointer shadow-md mb-1.5">
-                          Elegir Ganador
+                          class="w-full bg-gradient-to-r from-amber-500 to-rose-600 hover:opacity-95 text-white text-xs font-extrabold py-2 rounded-lg transition cursor-pointer shadow-md mb-1.5">
+                          ${currentPerson}: ¡Elegir Ganador!
                         </button>
                         <button type="button" data-discard-five="${item.id}"
                           class="w-full bg-white/5 hover:bg-white/10 text-slate-400 text-[10px] py-1 rounded transition cursor-pointer">
-                          Descartar
+                          ${currentPerson}: Descartar este
                         </button>
                       `
                       : `
                         <button type="button" data-discard-five="${item.id}"
-                          class="w-full bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-500/40 text-xs font-bold py-1.5 rounded-lg transition cursor-pointer">
-                          Descartar
+                          class="w-full ${isDylan ? 'bg-sky-500/25 text-sky-200 border-sky-500/40 hover:bg-sky-500/35' : 'bg-rose-500/25 text-rose-200 border-rose-500/40 hover:bg-rose-500/35'} border text-xs font-bold py-1.5 rounded-lg transition cursor-pointer">
+                          ${currentPerson}: Descartar este
                         </button>
                       `
                   }
@@ -930,11 +1003,16 @@ function runFiveMode() {
     `;
 
     document.getElementById("btnFiveReroll")?.addEventListener("click", runFiveMode);
+    document.getElementById("btnToggleFiveStarter")?.addEventListener("click", () => {
+      toggleTurnStarter();
+      render();
+    });
 
     container.querySelectorAll("button[data-discard-five]").forEach((btn) => {
       btn.addEventListener("click", () => {
         const id = btn.getAttribute("data-discard-five");
         discardedIds.add(id);
+        discardOrder.push({ id, by: currentPerson });
         playTick(300, 0.04);
         render();
       });
