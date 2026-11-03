@@ -1,22 +1,15 @@
 // ============================================================================
 // ¿DÓNDE COMEMOS, AMOR? · DYLAN & MARIA
+// Lógica 100% Funcional y Optimizada
 // ============================================================================
 
 const STORAGE_KEYS = {
-  FAVORITES: "rv_couple_favorites_v4",
-  HISTORY: "rv_couple_history_v4",
-  CUSTOM_PLACES: "rv_couple_custom_places_v4",
-  SOUND_ENABLED: "rv_couple_sound_v4",
-  SELECTED_MALL: "rv_couple_selected_mall_v4",
-  COUPLE_REVIEWS: "rv_dylan_maria_reviews_v4"
-};
-
-const PRICE_LABELS = {
-  5: "5.0 ★ · Muy Económico",
-  4: "4.0 ★ · Precio Justo",
-  3: "3.0 ★ · Moderado",
-  2: "2.0 ★ · Algo Costoso",
-  1: "1.0 ★ · Costoso"
+  FAVORITES: "rv_couple_favorites_v5",
+  HISTORY: "rv_couple_history_v5",
+  CUSTOM_PLACES: "rv_couple_custom_places_v5",
+  SOUND_ENABLED: "rv_couple_sound_v5",
+  SELECTED_MALL: "rv_couple_selected_mall_v5",
+  COUPLE_REVIEWS: "rv_dylan_maria_reviews_v5"
 };
 
 const STEP_HEADLINES = {
@@ -26,9 +19,10 @@ const STEP_HEADLINES = {
   4: "Paso 4 · Resultado"
 };
 
+// Estado reactivo de la aplicación
 const state = {
-  activeTab: "game",
-  gameStep: 1,
+  activeTab: "game", // "game" | "visited" | "catalog"
+  gameStep: 1, // 1 | 2 | 3 | 4
   selectedMallId: "all",
   catalogMallId: "all",
   selectedZone: "all",
@@ -48,9 +42,9 @@ const state = {
   currentWinner: null
 };
 
-// Sonido sutil para el sorteo
+// Sonido sutil para el juego
 let audioCtx = null;
-function playTick(freq = 520, duration = 0.03) {
+function playTick(freq = 520, duration = 0.035) {
   if (!state.soundEnabled) return;
   try {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -75,7 +69,7 @@ function playFanfare() {
   });
 }
 
-// Persistencia
+// Carga y guardado seguro en LocalStorage
 function loadPersistedState() {
   try {
     const favs = localStorage.getItem(STORAGE_KEYS.FAVORITES);
@@ -87,12 +81,14 @@ function loadPersistedState() {
     if (favs) state.favorites = JSON.parse(favs);
     if (custom) state.customPlaces = JSON.parse(custom);
     if (sound !== null) state.soundEnabled = JSON.parse(sound);
-    if (mall) {
+    if (mall && mall !== "undefined") {
       state.selectedMallId = mall;
       state.catalogMallId = mall;
     }
     if (reviews) state.coupleReviews = JSON.parse(reviews);
-  } catch (err) {}
+  } catch (err) {
+    console.warn("Error cargando LocalStorage:", err);
+  }
 }
 
 function savePersistedState() {
@@ -102,41 +98,108 @@ function savePersistedState() {
     localStorage.setItem(STORAGE_KEYS.SOUND_ENABLED, JSON.stringify(state.soundEnabled));
     localStorage.setItem(STORAGE_KEYS.SELECTED_MALL, state.selectedMallId);
     localStorage.setItem(STORAGE_KEYS.COUPLE_REVIEWS, JSON.stringify(state.coupleReviews));
-  } catch (err) {}
+  } catch (err) {
+    console.warn("Error guardando LocalStorage:", err);
+  }
 }
 
-// Helpers
+// ============================================================================
+// NORMALIZACIÓN DE DATOS (PROTECCIÓN TOTAL CONTRA UNDEFINED)
+// ============================================================================
 function getAllPlaces() {
-  return [...RESTAURANTS_DATA, ...state.customPlaces];
+  const rawList = window.RESTAURANTS_DATA || [];
+  const base = rawList.map((r) => {
+    const cleanId = String(r.uid || r.id || `${r.brandId || "place"}__${r.mallId || "scl"}`);
+    const ratingNum = Number(r.stars || r.rating || 4.5);
+    const meals = Array.isArray(r.mealTypes)
+      ? r.mealTypes
+      : Array.isArray(r.mealTimes)
+      ? r.mealTimes
+      : ["almuerzo", "cena"];
+
+    return {
+      id: cleanId,
+      uid: cleanId,
+      brandId: r.brandId || cleanId,
+      name: r.name || "Sin nombre",
+      mallId: r.mallId || "all",
+      mallName: r.mallName || "",
+      zone: r.zone || "Principal",
+      cuisine: r.cuisine || "Cocina Variada",
+      category: r.category || "restaurante",
+      mealTypes: meals,
+      mealTimes: meals,
+      rating: ratingNum,
+      stars: ratingNum,
+      waitTimeMins: Number(r.waitTimeMins) || (r.category === "rapida" ? 10 : r.category === "dulce" ? 8 : 20),
+      mustTry: r.mustTry || "Plato recomendado de la casa",
+      vibe: r.vibe || r.description || "Excelente ambiente para dos."
+    };
+  });
+
+  const customs = (state.customPlaces || []).map((c) => {
+    const cleanId = String(c.id || `custom-${Date.now()}`);
+    const ratingNum = Number(c.stars || c.rating || 4.8);
+    const meals = Array.isArray(c.mealTypes) ? c.mealTypes : ["almuerzo", "cena"];
+
+    return {
+      id: cleanId,
+      uid: cleanId,
+      brandId: cleanId,
+      name: c.name || "Sin nombre",
+      mallId: c.mallId || "all",
+      mallName: c.mallName || "Santiago",
+      zone: c.zone || "Principal",
+      cuisine: c.cuisine || "Cocina",
+      category: c.category || "restaurante",
+      mealTypes: meals,
+      mealTimes: meals,
+      rating: ratingNum,
+      stars: ratingNum,
+      waitTimeMins: Number(c.waitTimeMins) || 15,
+      mustTry: c.mustTry || "Especialidad",
+      vibe: c.vibe || "Agregado por Dylan y Maria."
+    };
+  });
+
+  return [...base, ...customs];
 }
 
 function getMallById(mallId) {
-  return MALLS_DATA.find((m) => m.id === mallId) || null;
+  if (!window.MALLS_DATA) return null;
+  return window.MALLS_DATA.find((m) => m.id === mallId) || null;
 }
 
 function isFavorite(id) {
-  return state.favorites.includes(id);
+  return state.favorites.includes(String(id));
 }
 
 function isVisited(id, name) {
+  const sid = String(id);
+  const sname = (name || "").toLowerCase().trim();
   return state.coupleReviews.some(
-    (r) => r.placeId === id || (name && r.placeName.toLowerCase() === name.toLowerCase())
+    (r) => String(r.placeId) === sid || (sname && (r.placeName || "").toLowerCase().trim() === sname)
   );
 }
 
 function getReview(id, name) {
+  const sid = String(id);
+  const sname = (name || "").toLowerCase().trim();
   return state.coupleReviews.find(
-    (r) => r.placeId === id || (name && r.placeName.toLowerCase() === name.toLowerCase())
+    (r) => String(r.placeId) === sid || (sname && (r.placeName || "").toLowerCase().trim() === sname)
   );
 }
 
-// Filtros
+// ============================================================================
+// FILTRADO DE CANDIDATOS
+// ============================================================================
 function getFilteredCandidates() {
-  return getAllPlaces().filter((item) => {
+  const all = getAllPlaces();
+  return all.filter((item) => {
     if (state.selectedMallId !== "all" && item.mallId !== state.selectedMallId) return false;
     if (state.selectedZone !== "all" && item.zone !== state.selectedZone) return false;
     if (state.selectedCategory !== "all" && item.category !== state.selectedCategory) return false;
-    if (state.selectedMealTime !== "all" && (!item.mealTimes || !item.mealTimes.includes(state.selectedMealTime))) return false;
+    if (state.selectedMealTime !== "all" && (!item.mealTypes || !item.mealTypes.includes(state.selectedMealTime))) return false;
     if (state.highRatedOnly && item.rating < 4.6) return false;
     if (state.excludeVisited && isVisited(item.id, item.name)) return false;
     if (state.onlyFavorites && !isFavorite(item.id)) return false;
@@ -145,27 +208,31 @@ function getFilteredCandidates() {
 }
 
 function getCatalogCandidates() {
-  return getAllPlaces()
+  const all = getAllPlaces();
+  return all
     .filter((item) => {
       if (state.catalogMallId !== "all" && item.mallId !== state.catalogMallId) return false;
       if (state.searchQuery.trim() !== "") {
         const q = state.searchQuery.toLowerCase().trim();
-        const m1 = item.name.toLowerCase().includes(q);
-        const m2 = item.cuisine.toLowerCase().includes(q);
+        const m1 = (item.name || "").toLowerCase().includes(q);
+        const m2 = (item.cuisine || "").toLowerCase().includes(q);
         const m3 = (item.mustTry || "").toLowerCase().includes(q);
-        if (!m1 && !m2 && !m3) return false;
+        const m4 = (item.zone || "").toLowerCase().includes(q);
+        if (!m1 && !m2 && !m3 && !m4) return false;
       }
       return true;
     })
     .sort((a, b) => {
-      if (state.sortBy === "rating-desc") return b.rating - a.rating;
+      if (state.sortBy === "rating-desc") return (b.rating || 0) - (a.rating || 0);
       if (state.sortBy === "wait-asc") return (a.waitTimeMins || 15) - (b.waitTimeMins || 15);
-      if (state.sortBy === "name-asc") return a.name.localeCompare(b.name);
-      return b.rating - a.rating;
+      if (state.sortBy === "name-asc") return (a.name || "").localeCompare(b.name || "");
+      return (b.rating || 0) - (a.rating || 0);
     });
 }
 
-// Navegación de pestañas
+// ============================================================================
+// NAVEGACIÓN ENTRE PESTAÑAS (APARTADOS)
+// ============================================================================
 function switchTab(tabId) {
   state.activeTab = tabId;
 
@@ -177,8 +244,11 @@ function switchTab(tabId) {
 
   Object.entries(panels).forEach(([key, panel]) => {
     if (!panel) return;
-    if (key === tabId) panel.classList.remove("hidden");
-    else panel.classList.add("hidden");
+    if (key === tabId) {
+      panel.classList.remove("hidden");
+    } else {
+      panel.classList.add("hidden");
+    }
   });
 
   document.querySelectorAll(".nav-tab-btn").forEach((btn) => {
@@ -194,31 +264,40 @@ function switchTab(tabId) {
   if (tabId === "catalog") renderCatalog();
 }
 
-// Pasos del juego
+// ============================================================================
+// NAVEGACIÓN PASO A PASO DEL JUEGO (1 A 4)
+// ============================================================================
 function goToStep(step) {
-  state.gameStep = Math.max(1, Math.min(4, step));
+  state.gameStep = Math.max(1, Math.min(4, Number(step) || 1));
 
+  // Alternar visibilidad de contenedores
   [1, 2, 3, 4].forEach((n) => {
     const el = document.getElementById(`gameStep${n}`);
     if (el) {
-      if (n === state.gameStep) el.classList.remove("hidden");
-      else el.classList.add("hidden");
+      if (n === state.gameStep) {
+        el.classList.remove("hidden");
+      } else {
+        el.classList.add("hidden");
+      }
     }
   });
 
+  // Título del paso actual
   const headlineEl = document.getElementById("gameStepHeadline");
-  if (headlineEl) headlineEl.textContent = STEP_HEADLINES[state.gameStep];
+  if (headlineEl) headlineEl.textContent = STEP_HEADLINES[state.gameStep] || `Paso ${state.gameStep}`;
 
-  document.querySelectorAll(".step-pill").forEach((pill, idx) => {
-    const pillStep = idx + 1;
+  // Resaltar píldoras superiores
+  document.querySelectorAll("[data-goto-step]").forEach((pill) => {
+    const pillStep = Number(pill.getAttribute("data-goto-step"));
     if (pillStep === state.gameStep) {
-      pill.className = "step-pill active text-center p-2 rounded-xl border border-white/10 transition text-xs font-bold truncate text-white";
+      pill.className = "step-pill active text-center p-2 rounded-xl border border-rose-500/60 bg-rose-500/25 transition text-xs font-bold truncate text-white shadow-[0_0_12px_rgba(244,63,94,0.25)]";
     } else {
-      pill.className = "step-pill text-center p-2 rounded-xl border border-white/10 transition text-xs font-bold truncate text-slate-400";
+      pill.className = "step-pill text-center p-2 rounded-xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.06] transition text-xs font-bold truncate text-slate-400";
     }
   });
 
   updateCounters();
+  updateStep2MallBadge();
 }
 
 function updateCounters() {
@@ -230,71 +309,146 @@ function updateCounters() {
   if (visitedCountBadge) visitedCountBadge.textContent = state.coupleReviews.length;
 }
 
-// Render Paso 1: Malls
+function updateStep2MallBadge() {
+  const badge = document.getElementById("step2MallBadge");
+  if (!badge) return;
+
+  if (state.selectedMallId === "all") {
+    badge.innerHTML = `
+      <span class="text-slate-400">Mall: Todos</span>
+      <button type="button" id="btnStep2GoChooseMall" class="ml-1.5 text-rose-300 font-bold hover:underline">
+        (Elegir Mall)
+      </button>
+    `;
+    document.getElementById("btnStep2GoChooseMall")?.addEventListener("click", () => goToStep(1));
+  } else {
+    const m = getMallById(state.selectedMallId);
+    badge.innerHTML = `
+      <span class="text-rose-300 font-bold">${m ? m.shortName : "Mall"}</span>
+      <button type="button" id="btnStep2DeselectMall" class="ml-1.5 text-slate-400 hover:text-white underline font-normal">
+        (Deseleccionar)
+      </button>
+    `;
+    document.getElementById("btnStep2DeselectMall")?.addEventListener("click", () => {
+      state.selectedMallId = "all";
+      state.catalogMallId = "all";
+      state.selectedZone = "all";
+      savePersistedState();
+      renderMallSelector();
+      renderZoneBar();
+      updateCounters();
+      updateStep2MallBadge();
+    });
+  }
+}
+
+// ============================================================================
+// PASO 1: SELECCIONAR Y DESELECCIONAR MALL
+// ============================================================================
 function renderMallSelector() {
   const grid = document.getElementById("mallSelectorGrid");
   if (!grid) return;
 
   const allPlaces = getAllPlaces();
+  const mallList = (window.MALLS_DATA || []).filter((m) => m.id !== "all");
+  const isAll = state.selectedMallId === "all";
 
+  // Botón "Todos los Malls"
   let html = `
     <button type="button" data-mall-id="all"
-      class="text-left p-3.5 rounded-xl border transition ${
-        state.selectedMallId === "all"
-          ? "bg-rose-500/20 border-rose-500 text-white"
-          : "glass-pill text-slate-300 hover:border-white/20"
+      class="text-left p-3.5 rounded-xl border transition cursor-pointer ${
+        isAll
+          ? "bg-rose-500/25 border-rose-500 text-white shadow-[0_0_12px_rgba(244,63,94,0.2)] ring-1 ring-rose-400/50"
+          : "glass-pill text-slate-300 hover:border-white/20 hover:bg-white/[0.06]"
       }">
       <div class="flex items-center justify-between">
         <span class="font-extrabold text-sm text-white">Todos los Malls</span>
-        <span class="text-xs text-slate-400">${allPlaces.length}</span>
+        <span class="text-xs text-rose-300 font-bold">${allPlaces.length}</span>
       </div>
       <div class="text-[11px] text-slate-400 mt-0.5">Santiago completo</div>
     </button>
   `;
 
-  MALLS_DATA.forEach((mall) => {
+  // Cada mall individual
+  mallList.forEach((mall) => {
     const count = allPlaces.filter((p) => p.mallId === mall.id).length;
     const active = state.selectedMallId === mall.id;
+
     html += `
       <button type="button" data-mall-id="${mall.id}"
-        class="text-left p-3.5 rounded-xl border transition ${
+        class="text-left p-3.5 rounded-xl border transition cursor-pointer ${
           active
-            ? "bg-rose-500/20 border-rose-500 text-white"
-            : "glass-pill text-slate-300 hover:border-white/20"
+            ? "bg-rose-500/25 border-rose-500 text-white shadow-[0_0_12px_rgba(244,63,94,0.2)] ring-1 ring-rose-400/50"
+            : "glass-pill text-slate-300 hover:border-white/20 hover:bg-white/[0.06]"
         }">
         <div class="flex items-center justify-between">
           <span class="font-extrabold text-sm text-white">${mall.shortName}</span>
-          <span class="text-xs text-slate-400">${count}</span>
+          <span class="text-xs text-rose-300 font-bold">${count}</span>
         </div>
-        <div class="text-[11px] text-slate-400 mt-0.5 truncate">${mall.commune}</div>
+        <div class="text-[11px] text-slate-400 mt-0.5 truncate">${mall.comuna || "Santiago"}</div>
       </button>
     `;
   });
 
   grid.innerHTML = html;
 
+  // Actualizar resumen en la esquina superior del paso 1
   const summary = document.getElementById("selectedMallSummary");
   if (summary) {
-    if (state.selectedMallId === "all") summary.textContent = "Santiago";
-    else {
+    if (state.selectedMallId === "all") {
+      summary.innerHTML = `<span class="text-slate-400 font-normal">Todos los Malls</span>`;
+    } else {
       const m = getMallById(state.selectedMallId);
-      summary.textContent = m ? m.shortName : "";
+      summary.innerHTML = `
+        <span class="text-rose-300 font-bold">${m ? m.shortName : state.selectedMallId}</span>
+        <button type="button" id="btnClearMallHeader" class="ml-2 text-[11px] text-slate-400 hover:text-white underline font-normal">
+          (Deseleccionar)
+        </button>
+      `;
+      document.getElementById("btnClearMallHeader")?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        deselectMall();
+      });
     }
   }
 
+  // Asignar eventos de clic
   grid.querySelectorAll("button[data-mall-id]").forEach((btn) => {
     btn.addEventListener("click", () => {
       const id = btn.getAttribute("data-mall-id");
-      state.selectedMallId = id;
-      state.catalogMallId = id;
+
+      if (id === "all") {
+        state.selectedMallId = "all";
+        state.catalogMallId = "all";
+      } else if (state.selectedMallId === id) {
+        // Si hace clic en el que ya estaba activo, se deselecciona
+        state.selectedMallId = "all";
+        state.catalogMallId = "all";
+      } else {
+        state.selectedMallId = id;
+        state.catalogMallId = id;
+      }
+
       state.selectedZone = "all";
       savePersistedState();
       renderMallSelector();
       renderZoneBar();
       updateCounters();
+      updateStep2MallBadge();
       goToStep(2);
     });
   });
+}
+
+function deselectMall() {
+  state.selectedMallId = "all";
+  state.catalogMallId = "all";
+  state.selectedZone = "all";
+  savePersistedState();
+  renderMallSelector();
+  renderZoneBar();
+  updateCounters();
+  updateStep2MallBadge();
 }
 
 function renderZoneBar() {
@@ -316,16 +470,16 @@ function renderZoneBar() {
   wrapper.classList.remove("hidden");
 
   let html = `
-    <button type="button" data-zone="all" class="text-xs px-2.5 py-1 rounded-lg border transition ${
-      state.selectedZone === "all" ? "bg-rose-500/20 border-rose-500 text-white" : "glass-pill text-slate-300"
-    }">Todos</button>
+    <button type="button" data-zone="all" class="text-xs px-2.5 py-1 rounded-lg border transition cursor-pointer ${
+      state.selectedZone === "all" ? "bg-rose-500/25 border-rose-500 text-white font-bold" : "glass-pill text-slate-300"
+    }">Todos los sectores</button>
   `;
 
   mall.zones.forEach((z) => {
     const active = state.selectedZone === z;
     html += `
-      <button type="button" data-zone="${z}" class="text-xs px-2.5 py-1 rounded-lg border transition ${
-        active ? "bg-rose-500/20 border-rose-500 text-white" : "glass-pill text-slate-300"
+      <button type="button" data-zone="${z}" class="text-xs px-2.5 py-1 rounded-lg border transition cursor-pointer ${
+        active ? "bg-rose-500/25 border-rose-500 text-white font-bold" : "glass-pill text-slate-300"
       }">${z}</button>
     `;
   });
@@ -341,7 +495,9 @@ function renderZoneBar() {
   });
 }
 
-// Modos de Juego
+// ============================================================================
+// PASO 3 Y 4: MODOS DE JUEGO (RULETA, DUELO, TERNA)
+// ============================================================================
 function runRoulette() {
   if (state.isSpinning) return;
   const candidates = getFilteredCandidates();
@@ -357,12 +513,12 @@ function runRoulette() {
 
   if (candidates.length === 0) {
     if (slotTitle) slotTitle.textContent = "Sin opciones con esos filtros";
-    if (slotSubtitle) slotSubtitle.textContent = "";
+    if (slotSubtitle) slotSubtitle.textContent = "Prueben cambiando el formato o deseleccionando filtros";
     if (container) {
       container.innerHTML = `
         <div class="text-center py-4">
           <button type="button" id="btnBackToFilters" class="text-xs font-bold text-rose-300 underline">
-            Volver al Paso 2 y ajustar
+            Volver a Antojo
           </button>
         </div>
       `;
@@ -376,17 +532,17 @@ function runRoulette() {
 
   const winner = candidates[Math.floor(Math.random() * candidates.length)];
   let step = 0;
-  const totalSteps = 18;
+  const totalSteps = 16;
 
   function anim() {
     const temp = candidates[Math.floor(Math.random() * candidates.length)];
     if (slotBadge) slotBadge.textContent = "Sorteando...";
     if (slotTitle) slotTitle.textContent = temp.name;
     if (slotSubtitle) slotSubtitle.textContent = `${temp.cuisine} · ${temp.zone}`;
-    playTick(400 + step * 20);
+    playTick(420 + step * 18);
     step++;
     if (step < totalSteps) {
-      setTimeout(anim, 40 + step * 12);
+      setTimeout(anim, 40 + step * 14);
     } else {
       state.isSpinning = false;
       state.currentWinner = winner;
@@ -452,16 +608,16 @@ function renderWinnerCard(item) {
 
       <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-white/10">
         <div class="flex items-center gap-2">
-          <button type="button" id="btnWinnerEval" class="bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs px-4 py-2 rounded-xl transition">
+          <button type="button" id="btnWinnerEval" class="bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs px-4 py-2 rounded-xl transition cursor-pointer">
             Evaluar Salida
           </button>
-          <button type="button" id="btnWinnerFav" class="glass-pill text-xs font-semibold px-3 py-2 rounded-xl transition ${
+          <button type="button" id="btnWinnerFav" class="glass-pill text-xs font-semibold px-3 py-2 rounded-xl transition cursor-pointer ${
             fav ? "text-rose-300 border-rose-500/40" : "text-slate-300"
           }">
             ${fav ? "Favorito" : "Guardar"}
           </button>
         </div>
-        <button type="button" id="btnWinnerReroll" class="text-xs text-slate-400 hover:text-white underline">
+        <button type="button" id="btnWinnerReroll" class="text-xs text-slate-400 hover:text-white underline cursor-pointer">
           Sortear otro
         </button>
       </div>
@@ -476,7 +632,7 @@ function renderWinnerCard(item) {
   document.getElementById("btnWinnerReroll")?.addEventListener("click", runRoulette);
 }
 
-// Duelo 2 Opciones
+// Duelo de 2 Opciones
 function runDuel() {
   const candidates = getFilteredCandidates();
   goToStep(4);
@@ -490,7 +646,7 @@ function runDuel() {
       container.innerHTML = `
         <div class="text-center py-4 text-xs text-slate-400">
           Se necesitan al menos 2 opciones para un duelo.
-          <button type="button" id="btnDuelBack" class="block mx-auto mt-2 text-rose-300 font-bold underline">Volver al Paso 2</button>
+          <button type="button" id="btnDuelBack" class="block mx-auto mt-2 text-rose-300 font-bold underline cursor-pointer">Volver al Paso 2</button>
         </div>
       `;
       document.getElementById("btnDuelBack")?.addEventListener("click", () => goToStep(2));
@@ -507,7 +663,7 @@ function runDuel() {
     <div class="glass-card rounded-2xl p-4 sm:p-5 border border-purple-500/30 space-y-4">
       <div class="flex items-center justify-between">
         <h3 class="text-base font-extrabold text-white">Duelo</h3>
-        <button type="button" id="btnDuelReroll" class="text-xs text-slate-400 hover:text-white underline">Otro duelo</button>
+        <button type="button" id="btnDuelReroll" class="text-xs text-slate-400 hover:text-white underline cursor-pointer">Otro duelo</button>
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -526,7 +682,7 @@ function runDuel() {
                 <p class="text-xs text-slate-400 mt-2">Recomendado: <strong class="text-white">${item.mustTry}</strong></p>
               </div>
               <button type="button" data-pick-duel="${item.id}"
-                class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs py-2 rounded-xl transition">
+                class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs py-2 rounded-xl transition cursor-pointer">
                 Elegir ${item.name}
               </button>
             </div>
@@ -553,7 +709,7 @@ function runDuel() {
   });
 }
 
-// Terna 3 Opciones con Descarte
+// Terna de 3 Opciones con Descarte
 function runTrio() {
   const candidates = getFilteredCandidates();
   goToStep(4);
@@ -567,7 +723,7 @@ function runTrio() {
       container.innerHTML = `
         <div class="text-center py-4 text-xs text-slate-400">
           Se necesitan al menos 3 opciones para jugar a la terna.
-          <button type="button" id="btnTrioBack" class="block mx-auto mt-2 text-rose-300 font-bold underline">Volver al Paso 2</button>
+          <button type="button" id="btnTrioBack" class="block mx-auto mt-2 text-rose-300 font-bold underline cursor-pointer">Volver al Paso 2</button>
         </div>
       `;
       document.getElementById("btnTrioBack")?.addEventListener("click", () => goToStep(2));
@@ -588,7 +744,7 @@ function runTrio() {
           <h3 class="text-base font-extrabold text-white">
             ${!vetoedId ? "Descartar 1 opción" : "Elegir ganador final"}
           </h3>
-          <button type="button" id="btnTrioReroll" class="text-xs text-slate-400 hover:text-white underline">Otra terna</button>
+          <button type="button" id="btnTrioReroll" class="text-xs text-slate-400 hover:text-white underline cursor-pointer">Otra terna</button>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -614,11 +770,11 @@ function runTrio() {
                     ? `<span class="text-[11px] text-center text-slate-500 block py-1.5 font-bold">Descartado</span>`
                     : !vetoedId
                     ? `<button type="button" data-veto="${item.id}"
-                        class="w-full bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-500/40 text-xs font-bold py-1.5 rounded-lg transition">
+                        class="w-full bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-500/40 text-xs font-bold py-1.5 rounded-lg transition cursor-pointer">
                         Descartar
                       </button>`
                     : `<button type="button" data-pick="${item.id}"
-                        class="w-full bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold py-1.5 rounded-lg transition">
+                        class="w-full bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold py-1.5 rounded-lg transition cursor-pointer">
                         Elegir
                       </button>`
                 }
@@ -657,11 +813,13 @@ function runTrio() {
   render();
 }
 
-// Apartado 2: Lugares Visitados (Dylan y Maria)
+// ============================================================================
+// APARTADO 2: LUGARES VISITADOS (DYLAN Y MARIA)
+// ============================================================================
 function renderVisitedSection() {
   const summaryEl = document.getElementById("coupleProfilesSummary");
   const listEl = document.getElementById("visitedPlacesList");
-  const reviews = state.coupleReviews;
+  const reviews = state.coupleReviews || [];
 
   updateCounters();
 
@@ -714,7 +872,7 @@ function renderVisitedSection() {
     listEl.innerHTML = `
       <div class="col-span-full text-center py-8 glass-card rounded-2xl border border-white/10">
         <h4 class="text-sm font-bold text-slate-300 mb-2">Sin lugares registrados aún</h4>
-        <button type="button" id="btnEmptyAdd" class="bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs px-4 py-2 rounded-xl transition">
+        <button type="button" id="btnEmptyAdd" class="bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs px-4 py-2 rounded-xl transition cursor-pointer">
           Agregar Primer Lugar
         </button>
       </div>
@@ -725,24 +883,24 @@ function renderVisitedSection() {
 
   listEl.innerHTML = reviews
     .map((rev) => {
-      const avg = ((Number(rev.dylanRating) + Number(rev.mariaRating)) / 2).toFixed(1);
+      const avg = ((Number(rev.dylanRating || 5) + Number(rev.mariaRating || 5)) / 2).toFixed(1);
       return `
         <article class="bg-black/40 border border-white/10 rounded-xl p-4 flex flex-col justify-between space-y-3">
           <div>
             <div class="flex items-center justify-between gap-2 mb-1">
-              <span class="text-[10px] font-bold uppercase text-slate-400">${rev.visitDate} · ${rev.mallName}</span>
+              <span class="text-[10px] font-bold uppercase text-slate-400">${rev.visitDate || "Salida"} · ${rev.mallName || "Santiago"}</span>
               <span class="text-xs font-extrabold text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded">
                 ${avg} ★
               </span>
             </div>
             <h3 class="text-base font-extrabold text-white">${rev.placeName}</h3>
-            <span class="text-[11px] text-emerald-400 font-semibold">Precio: ${rev.priceLevel}.0 ★</span>
+            <span class="text-[11px] text-emerald-400 font-semibold">Precio: ${rev.priceLevel || 4}.0 ★</span>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3 pt-3 border-t border-white/10 text-xs">
               <div class="bg-sky-500/10 border border-sky-500/20 rounded-lg p-2.5">
                 <div class="flex items-center justify-between font-bold text-sky-300 mb-1">
                   <span>Dylan</span>
-                  <span>${Number(rev.dylanRating).toFixed(1)} ★</span>
+                  <span>${Number(rev.dylanRating || 5).toFixed(1)} ★</span>
                 </div>
                 ${rev.dylanDish ? `<div class="text-[11px] text-slate-400 mb-1">Pidió: <strong class="text-slate-200">${rev.dylanDish}</strong></div>` : ""}
                 <p class="text-slate-300 italic">"${rev.dylanComment}"</p>
@@ -751,7 +909,7 @@ function renderVisitedSection() {
               <div class="bg-rose-500/10 border border-rose-500/20 rounded-lg p-2.5">
                 <div class="flex items-center justify-between font-bold text-rose-300 mb-1">
                   <span>Maria</span>
-                  <span>${Number(rev.mariaRating).toFixed(1)} ★</span>
+                  <span>${Number(rev.mariaRating || 5).toFixed(1)} ★</span>
                 </div>
                 ${rev.mariaDish ? `<div class="text-[11px] text-slate-400 mb-1">Pidió: <strong class="text-slate-200">${rev.mariaDish}</strong></div>` : ""}
                 <p class="text-slate-300 italic">"${rev.mariaComment}"</p>
@@ -760,7 +918,7 @@ function renderVisitedSection() {
           </div>
 
           <div class="flex justify-end pt-1">
-            <button type="button" data-del-review="${rev.id}" class="text-[11px] text-slate-500 hover:text-rose-400">
+            <button type="button" data-del-review="${rev.id}" class="text-[11px] text-slate-500 hover:text-rose-400 cursor-pointer">
               Eliminar
             </button>
           </div>
@@ -780,7 +938,9 @@ function renderVisitedSection() {
   });
 }
 
-// Apartado 3: Catálogo
+// ============================================================================
+// APARTADO 3: CATÁLOGO COMPLETO
+// ============================================================================
 function renderCatalog() {
   const grid = document.getElementById("restaurantsGrid");
   const countBadge = document.getElementById("directoryCountBadge");
@@ -828,13 +988,13 @@ function renderCatalog() {
           </div>
 
           <div class="grid grid-cols-3 gap-1.5 pt-2 border-t border-white/10">
-            <button type="button" data-cat-detail="${item.id}" class="glass-pill text-[11px] font-bold text-slate-300 py-1.5 rounded-lg">
+            <button type="button" data-cat-detail="${item.id}" class="glass-pill text-[11px] font-bold text-slate-300 py-1.5 rounded-lg cursor-pointer">
               Ficha
             </button>
-            <button type="button" data-cat-review="${item.id}" class="bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-bold py-1.5 rounded-lg transition">
+            <button type="button" data-cat-review="${item.id}" class="bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-bold py-1.5 rounded-lg transition cursor-pointer">
               ${rev ? "Editar" : "Evaluar"}
             </button>
-            <button type="button" data-cat-fav="${item.id}" class="glass-pill text-[11px] font-bold py-1.5 rounded-lg transition ${
+            <button type="button" data-cat-fav="${item.id}" class="glass-pill text-[11px] font-bold py-1.5 rounded-lg transition cursor-pointer ${
               fav ? "text-rose-300 border-rose-500/40" : "text-slate-400"
             }">
               ${fav ? "Fav" : "Guardar"}
@@ -909,7 +1069,7 @@ function openDetailModal(item) {
       }
 
       <div class="pt-2 flex justify-end">
-        <button type="button" id="btnDetailToReview" class="bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs px-4 py-2 rounded-xl transition">
+        <button type="button" id="btnDetailToReview" class="bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs px-4 py-2 rounded-xl transition cursor-pointer">
           ${rev ? "Editar Evaluación" : "Registrar que Fuimos"}
         </button>
       </div>
@@ -926,7 +1086,9 @@ function openDetailModal(item) {
   });
 }
 
-// Modal Evaluar Salida
+// ============================================================================
+// MODAL: REGISTRAR LUGAR VISITADO (DYLAN Y MARIA)
+// ============================================================================
 function openVisitModal(preselected = null) {
   const modal = document.getElementById("visitReviewModal");
   if (!modal) return;
@@ -958,18 +1120,19 @@ function openVisitModal(preselected = null) {
     if (catalogSelect) catalogSelect.value = preselected.id;
     if (nameInput) nameInput.value = preselected.name;
     const mall = getMallById(preselected.mallId);
-    if (mallInput) mallInput.value = mall ? mall.shortName : "";
+    if (mallInput) mallInput.value = mall ? mall.shortName : "Santiago";
 
     const existing = getReview(preselected.id, preselected.name);
     if (existing) {
-      if (priceInput) priceInput.value = String(existing.priceLevel);
-      if (dylanStars) dylanStars.value = String(existing.dylanRating);
+      if (priceInput) priceInput.value = String(existing.priceLevel || 4);
+      if (dylanStars) dylanStars.value = String(existing.dylanRating || 5);
       if (dylanDish) dylanDish.value = existing.dylanDish || "";
       if (dylanRev) dylanRev.value = existing.dylanComment || "";
-      if (mariaStars) mariaStars.value = String(existing.mariaRating);
+      if (mariaStars) mariaStars.value = String(existing.mariaRating || 5);
       if (mariaDish) mariaDish.value = existing.mariaDish || "";
       if (mariaRev) mariaRev.value = existing.mariaComment || "";
     } else {
+      if (priceInput) priceInput.value = "4";
       if (dylanStars) dylanStars.value = "5";
       if (dylanDish) dylanDish.value = preselected.mustTry || "";
       if (dylanRev) dylanRev.value = "";
@@ -1003,15 +1166,16 @@ function closeVisitModal() {
 }
 
 function toggleFav(id) {
-  if (state.favorites.includes(id)) {
-    state.favorites = state.favorites.filter((f) => f !== id);
+  const sid = String(id);
+  if (state.favorites.includes(sid)) {
+    state.favorites = state.favorites.filter((f) => f !== sid);
   } else {
-    state.favorites.push(id);
+    state.favorites.push(sid);
   }
   savePersistedState();
 }
 
-// Reset filtros
+// Reset filtros del juego
 function resetFilters() {
   state.selectedMallId = "all";
   state.selectedZone = "all";
@@ -1039,53 +1203,64 @@ function resetFilters() {
   renderMallSelector();
   renderZoneBar();
   updateCounters();
+  updateStep2MallBadge();
 }
 
-// Inicialización
+// ============================================================================
+// INICIALIZACIÓN GLOBAL (EVENTOS Y LISTENERS)
+// ============================================================================
 document.addEventListener("DOMContentLoaded", () => {
   loadPersistedState();
 
   // Poblar selectores de mall del catálogo y modal de nuevo local
   const catMallSelect = document.getElementById("catalogMallSelect");
   const addMallSelect = document.getElementById("addMallId");
+  const mallList = (window.MALLS_DATA || []).filter((m) => m.id !== "all");
+
   if (catMallSelect) {
     catMallSelect.innerHTML =
       `<option value="all">Todos los Malls</option>` +
-      MALLS_DATA.map((m) => `<option value="${m.id}">${m.shortName}</option>`).join("");
+      mallList.map((m) => `<option value="${m.id}">${m.shortName}</option>`).join("");
     catMallSelect.value = state.catalogMallId;
   }
   if (addMallSelect) {
-    addMallSelect.innerHTML = MALLS_DATA.map((m) => `<option value="${m.id}">${m.shortName}</option>`).join("");
+    addMallSelect.innerHTML = mallList.map((m) => `<option value="${m.id}">${m.shortName}</option>`).join("");
   }
 
+  // Renderizar componentes
   renderMallSelector();
   renderZoneBar();
   renderVisitedSection();
   renderCatalog();
   goToStep(1);
 
-  // Tabs
+  // Navegación de pestañas principales (Decisión, Visitados, Catálogo)
   document.querySelectorAll(".nav-tab-btn").forEach((btn) => {
     btn.addEventListener("click", () => switchTab(btn.getAttribute("data-tab")));
   });
 
-  // Steps
-  document.querySelectorAll(".step-pill").forEach((pill, idx) => {
-    pill.addEventListener("click", () => goToStep(idx + 1));
+  // Navegación de pasos por la barra superior clicable
+  document.querySelectorAll("[data-goto-step]").forEach((pill) => {
+    pill.addEventListener("click", () => {
+      const s = Number(pill.getAttribute("data-goto-step"));
+      if (s) goToStep(s);
+    });
   });
 
+  // Botones de Siguiente y Volver entre Pasos
   document.getElementById("btnStep1Next")?.addEventListener("click", () => goToStep(2));
   document.getElementById("btnStep2Back")?.addEventListener("click", () => goToStep(1));
   document.getElementById("btnStep2Next")?.addEventListener("click", () => goToStep(3));
   document.getElementById("btnStep3Back")?.addEventListener("click", () => goToStep(2));
   document.getElementById("btnBackToModes")?.addEventListener("click", () => goToStep(3));
 
+  // Botón Reiniciar
   document.getElementById("btnRestartGame")?.addEventListener("click", () => {
     resetFilters();
     goToStep(1);
   });
 
-  // Paso 2: Filtros
+  // Paso 2: Filtro de Formato
   document.querySelectorAll("#filterCategoryGroup button").forEach((btn) => {
     btn.addEventListener("click", () => {
       state.selectedCategory = btn.getAttribute("data-category");
@@ -1095,6 +1270,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  // Paso 2: Filtro de Momento
   document.querySelectorAll("#filterMealGroup button").forEach((btn) => {
     btn.addEventListener("click", () => {
       state.selectedMealTime = btn.getAttribute("data-meal");
@@ -1104,6 +1280,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  // Paso 2: Checkboxes
   document.getElementById("chkHighRatedOnly")?.addEventListener("change", (e) => {
     state.highRatedOnly = e.target.checked;
     updateCounters();
@@ -1117,13 +1294,13 @@ document.addEventListener("DOMContentLoaded", () => {
     updateCounters();
   });
 
-  // Paso 3: Modos
+  // Paso 3: Modos de juego
   document.getElementById("btnSpinRoulette")?.addEventListener("click", runRoulette);
   document.getElementById("btnBattleMode")?.addEventListener("click", runDuel);
   document.getElementById("btnTrioMode")?.addEventListener("click", runTrio);
   document.getElementById("btnResetFilters")?.addEventListener("click", resetFilters);
 
-  // Catálogo
+  // Catálogo: Filtros y Búsqueda
   document.getElementById("catalogMallSelect")?.addEventListener("change", (e) => {
     state.catalogMallId = e.target.value;
     renderCatalog();
@@ -1137,37 +1314,65 @@ document.addEventListener("DOMContentLoaded", () => {
     renderCatalog();
   });
 
-  // Sonido
+  // Botón de Sonido
   const soundBtn = document.getElementById("btnToggleSound");
-  soundBtn?.addEventListener("click", () => {
-    state.soundEnabled = !state.soundEnabled;
+  if (soundBtn) {
     soundBtn.textContent = `Sonido: ${state.soundEnabled ? "On" : "Off"}`;
-    savePersistedState();
-  });
+    soundBtn.addEventListener("click", () => {
+      state.soundEnabled = !state.soundEnabled;
+      soundBtn.textContent = `Sonido: ${state.soundEnabled ? "On" : "Off"}`;
+      savePersistedState();
+    });
+  }
 
   // Modales
   document.getElementById("btnAddVisitedFromSection")?.addEventListener("click", () => openVisitModal(null));
   document.getElementById("btnCloseVisitReviewModal")?.addEventListener("click", closeVisitModal);
   document.getElementById("btnCancelVisitReview")?.addEventListener("click", closeVisitModal);
+
   document.getElementById("btnCloseDetailModal")?.addEventListener("click", () => {
     const m = document.getElementById("detailModal");
     m?.classList.add("hidden");
     m?.classList.remove("flex");
   });
 
+  // Cerrar modales al hacer clic fuera del contenido
+  window.addEventListener("click", (e) => {
+    const detailModal = document.getElementById("detailModal");
+    const visitModal = document.getElementById("visitReviewModal");
+    const addModal = document.getElementById("addModal");
+    if (e.target === detailModal) {
+      detailModal.classList.add("hidden");
+      detailModal.classList.remove("flex");
+    }
+    if (e.target === visitModal) {
+      visitModal.classList.add("hidden");
+      visitModal.classList.remove("flex");
+    }
+    if (e.target === addModal) {
+      addModal.classList.add("hidden");
+      addModal.classList.remove("flex");
+    }
+  });
+
+  // Selector del modal de reseñas
   document.getElementById("visitSelectCatalog")?.addEventListener("change", (e) => {
     const id = e.target.value;
     if (!id) return;
     const p = getAllPlaces().find((item) => item.id === id);
     if (p) {
-      document.getElementById("visitPlaceName").value = p.name;
-      const mall = getMallById(p.mallId);
-      if (mall) document.getElementById("visitMallName").value = mall.shortName;
+      const nameInput = document.getElementById("visitPlaceName");
+      const mallInput = document.getElementById("visitMallName");
       const dishInput = document.getElementById("visitDylanDish");
+
+      if (nameInput) nameInput.value = p.name;
+      const mall = getMallById(p.mallId);
+      if (mallInput) mallInput.value = mall ? mall.shortName : "Santiago";
       if (dishInput && !dishInput.value) dishInput.value = p.mustTry || "";
     }
   });
 
+  // Guardar Reseña de Dylan y Maria
   document.getElementById("formVisitReview")?.addEventListener("submit", (e) => {
     e.preventDefault();
     const catalogId = document.getElementById("visitSelectCatalog")?.value || null;
@@ -1205,6 +1410,7 @@ document.addEventListener("DOMContentLoaded", () => {
       mariaComment
     };
 
+    // Evitar duplicados por id o nombre
     state.coupleReviews = state.coupleReviews.filter(
       (r) => !(catalogId && r.placeId === catalogId) && r.placeName.toLowerCase() !== placeName.toLowerCase()
     );
@@ -1218,7 +1424,7 @@ document.addEventListener("DOMContentLoaded", () => {
     switchTab("visited");
   });
 
-  // Modal nuevo local
+  // Modal para agregar local al catálogo
   const addModal = document.getElementById("addModal");
   document.getElementById("btnOpenAddModal")?.addEventListener("click", () => {
     addModal?.classList.remove("hidden");
@@ -1246,11 +1452,12 @@ document.addEventListener("DOMContentLoaded", () => {
       zone: "Principal",
       category,
       cuisine,
+      stars: 4.8,
       rating: 4.8,
       waitTimeMins: 15,
-      mealTimes: ["almuerzo", "cena"],
+      mealTypes: ["almuerzo", "cena"],
       mustTry,
-      vibe: "Agregado al catálogo."
+      vibe: "Agregado al catálogo por Dylan y Maria."
     };
 
     state.customPlaces.push(newPlace);

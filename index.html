@@ -148,16 +148,16 @@
         </div>
 
         <div class="grid grid-cols-4 gap-1.5">
-          <button type="button" data-goto-step="1" class="step-pill active text-center p-2 rounded-xl border border-white/10 transition text-xs font-bold truncate">
+          <button type="button" data-goto-step="1" class="step-pill active text-center p-2 rounded-xl border border-white/10 transition text-xs font-bold truncate cursor-pointer">
             1. Mall
           </button>
-          <button type="button" data-goto-step="2" class="step-pill text-center p-2 rounded-xl border border-white/10 transition text-xs font-bold truncate text-slate-400">
+          <button type="button" data-goto-step="2" class="step-pill text-center p-2 rounded-xl border border-white/10 transition text-xs font-bold truncate text-slate-400 cursor-pointer">
             2. Antojo
           </button>
-          <button type="button" data-goto-step="3" class="step-pill text-center p-2 rounded-xl border border-white/10 transition text-xs font-bold truncate text-slate-400">
+          <button type="button" data-goto-step="3" class="step-pill text-center p-2 rounded-xl border border-white/10 transition text-xs font-bold truncate text-slate-400 cursor-pointer">
             3. Modo
           </button>
-          <button type="button" data-goto-step="4" class="step-pill text-center p-2 rounded-xl border border-white/10 transition text-xs font-bold truncate text-slate-400">
+          <button type="button" data-goto-step="4" class="step-pill text-center p-2 rounded-xl border border-white/10 transition text-xs font-bold truncate text-slate-400 cursor-pointer">
             4. Resultado
           </button>
         </div>
@@ -178,7 +178,7 @@
           <button
             type="button"
             id="btnStep1Next"
-            class="bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs sm:text-sm px-5 py-2.5 rounded-xl transition"
+            class="bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs sm:text-sm px-5 py-2.5 rounded-xl transition cursor-pointer"
           >
             Siguiente: Antojo
           </button>
@@ -187,7 +187,10 @@
 
       <!-- PASO 2: ELEGIR ANTOJO -->
       <div id="gameStep2" class="hidden glass-card rounded-2xl p-4 sm:p-5 space-y-4 step-fade">
-        <h2 class="text-base sm:text-lg font-extrabold text-white">¿Qué les tinca hoy?</h2>
+        <div class="flex items-center justify-between">
+          <h2 class="text-base sm:text-lg font-extrabold text-white">¿Qué les tinca hoy?</h2>
+          <div id="step2MallBadge" class="text-xs"></div>
+        </div>
 
         <!-- Sector específico del Mall (si aplica) -->
         <div id="gameZoneWrapper" class="space-y-1.5 hidden">
@@ -255,10 +258,10 @@
         </div>
 
         <div class="pt-2 flex items-center justify-between">
-          <button type="button" id="btnStep2Back" class="text-xs font-bold text-slate-400 hover:text-white px-3 py-2">
+          <button type="button" id="btnStep2Back" class="glass-pill hover:bg-white/10 text-xs font-bold text-slate-300 hover:text-white px-4 py-2.5 rounded-xl transition cursor-pointer">
             Volver a Mall
           </button>
-          <button type="button" id="btnStep2Next" class="bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs sm:text-sm px-5 py-2.5 rounded-xl transition">
+          <button type="button" id="btnStep2Next" class="bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs sm:text-sm px-5 py-2.5 rounded-xl transition cursor-pointer">
             Siguiente: Modo
           </button>
         </div>
@@ -304,10 +307,10 @@
         </div>
 
         <div class="pt-2 flex items-center justify-between">
-          <button type="button" id="btnStep3Back" class="text-xs font-bold text-slate-400 hover:text-white px-3 py-2">
+          <button type="button" id="btnStep3Back" class="glass-pill hover:bg-white/10 text-xs font-bold text-slate-300 hover:text-white px-4 py-2.5 rounded-xl transition cursor-pointer">
             Volver a Antojo
           </button>
-          <button type="button" id="btnResetFilters" class="text-xs text-rose-400 hover:text-rose-300 font-semibold underline">
+          <button type="button" id="btnResetFilters" class="text-xs text-rose-400 hover:text-rose-300 font-semibold underline cursor-pointer">
             Limpiar filtros
           </button>
         </div>
@@ -317,7 +320,7 @@
       <div id="gameStep4" class="hidden glass-card rounded-2xl p-4 sm:p-5 space-y-4 step-fade">
         <div class="flex items-center justify-between border-b border-white/10 pb-2.5">
           <h2 class="text-base sm:text-lg font-extrabold text-white">Resultado</h2>
-          <button type="button" id="btnBackToModes" class="text-xs font-bold text-slate-300 hover:text-white glass-pill px-3 py-1.5 rounded-lg">
+          <button type="button" id="btnBackToModes" class="text-xs font-bold text-slate-300 hover:text-white glass-pill hover:bg-white/10 px-3.5 py-1.5 rounded-lg transition cursor-pointer">
             Cambiar Modo
           </button>
         </div>
