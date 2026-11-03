@@ -115,7 +115,7 @@
 
     const subtitle = document.getElementById("coupleSubtitle");
     if (subtitle && state.coupleNames.p1 && state.coupleNames.p2) {
-      subtitle.innerHTML = `Panel de decisión para <strong class="text-rose-300">${escapeHtml(state.coupleNames.p1)} y ${escapeHtml(state.coupleNames.p2)}</strong> · Seleccionen un mall y generen su próxima parada`;
+      subtitle.innerHTML = `El espacio exclusivo de <strong class="text-rose-300">${escapeHtml(state.coupleNames.p1)} y ${escapeHtml(state.coupleNames.p2)}</strong> · Nuestras salidas y citas juntos`;
     }
   }
 
