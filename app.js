@@ -595,11 +595,11 @@ function renderWinnerCard(item) {
         <div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs">
           <div class="flex items-center justify-between text-emerald-300 font-bold mb-1">
             <span>Ya fuimos (${rev.visitDate})</span>
-            <span>Precio: ${rev.priceLevel}.0 ★</span>
+            <span>Precio: ${rev.priceLevel || 4}.0 ★</span>
           </div>
           <div class="text-slate-300 space-y-0.5">
-            <div><strong>Dylan (${Number(rev.dylanRating).toFixed(1)} ★):</strong> "${rev.dylanComment}"</div>
-            <div><strong>Maria (${Number(rev.mariaRating).toFixed(1)} ★):</strong> "${rev.mariaComment}"</div>
+            ${rev.dylanRating ? `<div><strong>Dylan (${Number(rev.dylanRating).toFixed(1)} ★):</strong> "${rev.dylanComment || ""}"</div>` : `<div class="text-slate-400">Dylan: Aún sin reseña</div>`}
+            ${rev.mariaRating ? `<div><strong>Maria (${Number(rev.mariaRating).toFixed(1)} ★):</strong> "${rev.mariaComment || ""}"</div>` : `<div class="text-slate-400">Maria: Aún sin reseña</div>`}
           </div>
         </div>
       `
@@ -1037,6 +1037,7 @@ function runFiveMode() {
 }
 
 // ============================================================================
+// ============================================================================
 // APARTADO 2: LUGARES VISITADOS (DYLAN Y MARIA)
 // ============================================================================
 function renderVisitedSection() {
@@ -1046,17 +1047,37 @@ function renderVisitedSection() {
 
   updateCounters();
 
-  let dylanAvg = 0;
-  let mariaAvg = 0;
-  let priceAvg = 0;
+  let dylanCount = 0;
+  let dylanSum = 0;
+  let mariaCount = 0;
+  let mariaSum = 0;
+  let priceSum = 0;
 
-  if (reviews.length > 0) {
-    const dSum = reviews.reduce((acc, r) => acc + Number(r.dylanRating || 0), 0);
-    const mSum = reviews.reduce((acc, r) => acc + Number(r.mariaRating || 0), 0);
-    const pSum = reviews.reduce((acc, r) => acc + Number(r.priceLevel || 0), 0);
-    dylanAvg = (dSum / reviews.length).toFixed(1);
-    mariaAvg = (mSum / reviews.length).toFixed(1);
-    priceAvg = (pSum / reviews.length).toFixed(1);
+  reviews.forEach((r) => {
+    if (r.dylanRating !== null && r.dylanRating !== undefined && r.dylanRating !== "") {
+      dylanSum += Number(r.dylanRating);
+      dylanCount++;
+    }
+    if (r.mariaRating !== null && r.mariaRating !== undefined && r.mariaRating !== "") {
+      mariaSum += Number(r.mariaRating);
+      mariaCount++;
+    }
+    if (r.priceLevel) {
+      priceSum += Number(r.priceLevel);
+    }
+  });
+
+  const dylanAvg = dylanCount > 0 ? (dylanSum / dylanCount).toFixed(1) : null;
+  const mariaAvg = mariaCount > 0 ? (mariaSum / mariaCount).toFixed(1) : null;
+  const priceAvg = reviews.length > 0 ? (priceSum / reviews.length).toFixed(1) : null;
+
+  let coupleAvg = "—";
+  if (dylanAvg && mariaAvg) {
+    coupleAvg = `${((Number(dylanAvg) + Number(mariaAvg)) / 2).toFixed(1)} ★`;
+  } else if (dylanAvg) {
+    coupleAvg = `${dylanAvg} ★`;
+  } else if (mariaAvg) {
+    coupleAvg = `${mariaAvg} ★`;
   }
 
   if (summaryEl) {
@@ -1064,27 +1085,25 @@ function renderVisitedSection() {
       <div class="bg-black/40 border border-sky-500/30 rounded-xl p-3.5">
         <div class="flex items-center justify-between mb-1">
           <span class="text-xs font-extrabold text-sky-400">Dylan</span>
-          <span class="text-sm font-extrabold text-amber-300">${reviews.length > 0 ? `${dylanAvg} ★` : "—"}</span>
+          <span class="text-sm font-extrabold text-amber-300">${dylanAvg ? `${dylanAvg} ★` : "—"}</span>
         </div>
-        <div class="text-[11px] text-slate-400">${reviews.length} calificaciones</div>
+        <div class="text-[11px] text-slate-400">${dylanCount} reseña${dylanCount === 1 ? "" : "s"}</div>
       </div>
 
       <div class="bg-black/40 border border-rose-500/30 rounded-xl p-3.5">
         <div class="flex items-center justify-between mb-1">
           <span class="text-xs font-extrabold text-rose-400">Maria</span>
-          <span class="text-sm font-extrabold text-amber-300">${reviews.length > 0 ? `${mariaAvg} ★` : "—"}</span>
+          <span class="text-sm font-extrabold text-amber-300">${mariaAvg ? `${mariaAvg} ★` : "—"}</span>
         </div>
-        <div class="text-[11px] text-slate-400">${reviews.length} calificaciones</div>
+        <div class="text-[11px] text-slate-400">${mariaCount} reseña${mariaCount === 1 ? "" : "s"}</div>
       </div>
 
       <div class="bg-black/40 border border-white/10 rounded-xl p-3.5">
         <div class="flex items-center justify-between mb-1">
           <span class="text-xs font-extrabold text-slate-200">Promedio Pareja</span>
-          <span class="text-sm font-extrabold text-amber-300">${
-            reviews.length > 0 ? `${((Number(dylanAvg) + Number(mariaAvg)) / 2).toFixed(1)} ★` : "—"
-          }</span>
+          <span class="text-sm font-extrabold text-amber-300">${coupleAvg}</span>
         </div>
-        <div class="text-[11px] text-slate-400">Precio promedio: ${reviews.length > 0 ? `${priceAvg} ★` : "—"}</div>
+        <div class="text-[11px] text-slate-400">Precio promedio: ${priceAvg ? `${priceAvg} ★` : "—"}</div>
       </div>
     `;
   }
@@ -1106,49 +1125,120 @@ function renderVisitedSection() {
 
   listEl.innerHTML = reviews
     .map((rev) => {
-      const avg = ((Number(rev.dylanRating || 5) + Number(rev.mariaRating || 5)) / 2).toFixed(1);
+      const hasDylan = rev.dylanRating !== null && rev.dylanRating !== undefined && rev.dylanRating !== "";
+      const hasMaria = rev.mariaRating !== null && rev.mariaRating !== undefined && rev.mariaRating !== "";
+
+      let badgeHtml = "";
+      if (hasDylan && hasMaria) {
+        const avg = ((Number(rev.dylanRating) + Number(rev.mariaRating)) / 2).toFixed(1);
+        badgeHtml = `<span class="text-xs font-extrabold text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded">${avg} ★</span>`;
+      } else if (hasDylan) {
+        badgeHtml = `<span class="text-xs font-extrabold text-sky-300 bg-sky-500/10 border border-sky-500/20 px-2 py-0.5 rounded">Dylan: ${Number(rev.dylanRating).toFixed(1)} ★</span>`;
+      } else if (hasMaria) {
+        badgeHtml = `<span class="text-xs font-extrabold text-rose-300 bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded">Maria: ${Number(rev.mariaRating).toFixed(1)} ★</span>`;
+      } else {
+        badgeHtml = `<span class="text-[11px] text-slate-400 bg-white/5 border border-white/10 px-2 py-0.5 rounded">Sin reseñas aún</span>`;
+      }
+
       return `
-        <article class="bg-black/40 border border-white/10 rounded-xl p-4 flex flex-col justify-between space-y-3">
+        <article class="bg-black/40 border border-white/10 rounded-2xl p-4 flex flex-col justify-between space-y-3.5 hover:border-white/20 transition">
           <div>
             <div class="flex items-center justify-between gap-2 mb-1">
               <span class="text-[10px] font-bold uppercase text-slate-400">${rev.visitDate || "Salida"} · ${rev.mallName || "Santiago"}</span>
-              <span class="text-xs font-extrabold text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded">
-                ${avg} ★
-              </span>
+              ${badgeHtml}
             </div>
-            <h3 class="text-base font-extrabold text-white">${rev.placeName}</h3>
+            <h3 class="text-base sm:text-lg font-extrabold text-white">${rev.placeName}</h3>
             <span class="text-[11px] text-emerald-400 font-semibold">Precio: ${rev.priceLevel || 4}.0 ★</span>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3 pt-3 border-t border-white/10 text-xs">
-              <div class="bg-sky-500/10 border border-sky-500/20 rounded-lg p-2.5">
-                <div class="flex items-center justify-between font-bold text-sky-300 mb-1">
-                  <span>Dylan</span>
-                  <span>${Number(rev.dylanRating || 5).toFixed(1)} ★</span>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-3 pt-3 border-t border-white/10 text-xs">
+              <!-- Caja Dylan -->
+              <div class="bg-sky-500/10 border border-sky-500/20 rounded-xl p-3 flex flex-col justify-between">
+                <div>
+                  <div class="flex items-center justify-between font-bold text-sky-300 mb-1">
+                    <span>Dylan</span>
+                    ${hasDylan ? `<span class="text-amber-300">${Number(rev.dylanRating).toFixed(1)} ★</span>` : `<span class="text-[10px] text-slate-400 font-normal">Pendiente</span>`}
+                  </div>
+                  ${
+                    hasDylan
+                      ? `
+                    ${rev.dylanDish ? `<div class="text-[11px] text-slate-400 mb-1">Pidió: <strong class="text-slate-200">${rev.dylanDish}</strong></div>` : ""}
+                    <p class="text-slate-300 italic text-[11px]">${rev.dylanComment ? `"${rev.dylanComment}"` : "Sin comentario adicional."}</p>
+                  `
+                      : `
+                    <p class="text-[11px] text-slate-400">Aún no agregas tu reseña personal.</p>
+                  `
+                  }
                 </div>
-                ${rev.dylanDish ? `<div class="text-[11px] text-slate-400 mb-1">Pidió: <strong class="text-slate-200">${rev.dylanDish}</strong></div>` : ""}
-                <p class="text-slate-300 italic">"${rev.dylanComment}"</p>
+                <div class="pt-2 mt-2 border-t border-sky-500/20">
+                  <button type="button" data-open-single-review="${rev.id}" data-author="Dylan" class="w-full ${
+                    hasDylan
+                      ? "text-sky-300 hover:text-sky-200 font-bold text-xs py-1"
+                      : "bg-sky-500/25 hover:bg-sky-500/40 text-sky-200 font-bold text-xs py-1.5 rounded-lg border border-sky-500/40"
+                  } transition cursor-pointer">
+                    ${hasDylan ? "Editar Reseña" : "+ Reseña de Dylan"}
+                  </button>
+                </div>
               </div>
 
-              <div class="bg-rose-500/10 border border-rose-500/20 rounded-lg p-2.5">
-                <div class="flex items-center justify-between font-bold text-rose-300 mb-1">
-                  <span>Maria</span>
-                  <span>${Number(rev.mariaRating || 5).toFixed(1)} ★</span>
+              <!-- Caja Maria -->
+              <div class="bg-rose-500/10 border border-rose-500/20 rounded-xl p-3 flex flex-col justify-between">
+                <div>
+                  <div class="flex items-center justify-between font-bold text-rose-300 mb-1">
+                    <span>Maria</span>
+                    ${hasMaria ? `<span class="text-amber-300">${Number(rev.mariaRating).toFixed(1)} ★</span>` : `<span class="text-[10px] text-slate-400 font-normal">Pendiente</span>`}
+                  </div>
+                  ${
+                    hasMaria
+                      ? `
+                    ${rev.mariaDish ? `<div class="text-[11px] text-slate-400 mb-1">Pidió: <strong class="text-slate-200">${rev.mariaDish}</strong></div>` : ""}
+                    <p class="text-slate-300 italic text-[11px]">${rev.mariaComment ? `"${rev.mariaComment}"` : "Sin comentario adicional."}</p>
+                  `
+                      : `
+                    <p class="text-[11px] text-slate-400">Aún no agrega su reseña personal.</p>
+                  `
+                  }
                 </div>
-                ${rev.mariaDish ? `<div class="text-[11px] text-slate-400 mb-1">Pidió: <strong class="text-slate-200">${rev.mariaDish}</strong></div>` : ""}
-                <p class="text-slate-300 italic">"${rev.mariaComment}"</p>
+                <div class="pt-2 mt-2 border-t border-rose-500/20">
+                  <button type="button" data-open-single-review="${rev.id}" data-author="Maria" class="w-full ${
+                    hasMaria
+                      ? "text-rose-300 hover:text-rose-200 font-bold text-xs py-1"
+                      : "bg-rose-500/25 hover:bg-rose-500/40 text-rose-200 font-bold text-xs py-1.5 rounded-lg border border-rose-500/40"
+                  } transition cursor-pointer">
+                    ${hasMaria ? "Editar Reseña" : "+ Reseña de Maria"}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
 
-          <div class="flex justify-end pt-1">
-            <button type="button" data-del-review="${rev.id}" class="text-[11px] text-slate-500 hover:text-rose-400 cursor-pointer">
-              Eliminar
+          <div class="flex items-center justify-between pt-1 border-t border-white/5 text-[11px]">
+            <button type="button" data-edit-place="${rev.id}" class="text-slate-400 hover:text-white underline cursor-pointer">
+              Editar fecha / mall
+            </button>
+            <button type="button" data-del-review="${rev.id}" class="text-slate-500 hover:text-rose-400 cursor-pointer">
+              Eliminar lugar
             </button>
           </div>
         </article>
       `;
     })
     .join("");
+
+  listEl.querySelectorAll("button[data-open-single-review]").forEach((b) => {
+    b.addEventListener("click", () => {
+      const id = b.getAttribute("data-open-single-review");
+      const author = b.getAttribute("data-author");
+      openSingleReviewModal(id, author);
+    });
+  });
+
+  listEl.querySelectorAll("button[data-edit-place]").forEach((b) => {
+    b.addEventListener("click", () => {
+      const id = b.getAttribute("data-edit-place");
+      const rev = state.coupleReviews.find((r) => r.id === id);
+      if (rev) openVisitModal(rev);
+    });
+  });
 
   listEl.querySelectorAll("button[data-del-review]").forEach((b) => {
     b.addEventListener("click", () => {
@@ -1202,8 +1292,16 @@ function renderCatalog() {
               rev
                 ? `
               <div class="mt-2.5 p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-300 flex items-center justify-between">
-                <span>Ya fuimos</span>
-                <span class="font-bold">Dylan & Maria: ${(((Number(rev.dylanRating) + Number(rev.mariaRating)) / 2)).toFixed(1)} ★</span>
+                <span>Ya fuimos (${rev.visitDate})</span>
+                <span class="font-bold">${
+                  rev.dylanRating && rev.mariaRating
+                    ? `Dylan & Maria: ${(((Number(rev.dylanRating) + Number(rev.mariaRating)) / 2)).toFixed(1)} ★`
+                    : rev.dylanRating
+                    ? `Dylan: ${Number(rev.dylanRating).toFixed(1)} ★`
+                    : rev.mariaRating
+                    ? `Maria: ${Number(rev.mariaRating).toFixed(1)} ★`
+                    : "Lugar guardado"
+                }</span>
               </div>
             `
                 : ""
@@ -1283,9 +1381,9 @@ function openDetailModal(item) {
         rev
           ? `
         <div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs space-y-1">
-          <div class="text-emerald-300 font-bold">Reseñas de Dylan y Maria (${rev.visitDate})</div>
-          <div class="text-slate-300">Dylan (${Number(rev.dylanRating).toFixed(1)} ★): "${rev.dylanComment}"</div>
-          <div class="text-slate-300">Maria (${Number(rev.mariaRating).toFixed(1)} ★): "${rev.mariaComment}"</div>
+          <div class="text-emerald-300 font-bold">Registrado (${rev.visitDate}) · Precio ${rev.priceLevel || 4}.0 ★</div>
+          ${rev.dylanRating ? `<div class="text-slate-300">Dylan (${Number(rev.dylanRating).toFixed(1)} ★): "${rev.dylanComment || ""}"</div>` : `<div class="text-slate-400">Dylan: Sin reseña aún</div>`}
+          ${rev.mariaRating ? `<div class="text-slate-300">Maria (${Number(rev.mariaRating).toFixed(1)} ★): "${rev.mariaComment || ""}"</div>` : `<div class="text-slate-400">Maria: Sin reseña aún</div>`}
         </div>
       `
           : ""
@@ -1310,7 +1408,7 @@ function openDetailModal(item) {
 }
 
 // ============================================================================
-// MODAL: REGISTRAR LUGAR VISITADO (DYLAN Y MARIA)
+// MODAL: REGISTRAR LUGAR VISITADO (SOLO DATOS DEL LUGAR)
 // ============================================================================
 function openVisitModal(preselected = null) {
   const modal = document.getElementById("visitReviewModal");
@@ -1321,12 +1419,6 @@ function openVisitModal(preselected = null) {
   const dateInput = document.getElementById("visitDate");
   const mallInput = document.getElementById("visitMallName");
   const priceInput = document.getElementById("visitPriceLevel");
-  const dylanStars = document.getElementById("visitDylanStars");
-  const dylanDish = document.getElementById("visitDylanDish");
-  const dylanRev = document.getElementById("visitDylanReview");
-  const mariaStars = document.getElementById("visitMariaStars");
-  const mariaDish = document.getElementById("visitMariaDish");
-  const mariaRev = document.getElementById("visitMariaReview");
 
   if (catalogSelect) {
     catalogSelect.innerHTML =
@@ -1337,43 +1429,27 @@ function openVisitModal(preselected = null) {
   }
 
   const today = new Date().toISOString().split("T")[0];
-  if (dateInput) dateInput.value = today;
 
   if (preselected) {
-    if (catalogSelect) catalogSelect.value = preselected.id;
-    if (nameInput) nameInput.value = preselected.name;
-    const mall = getMallById(preselected.mallId);
-    if (mallInput) mallInput.value = mall ? mall.shortName : "Santiago";
+    const isReview = Boolean(preselected.placeName);
+    const placeName = isReview ? preselected.placeName : preselected.name;
+    const mallName = isReview ? preselected.mallName : (getMallById(preselected.mallId)?.shortName || "Santiago");
+    const placeId = isReview ? preselected.placeId : preselected.id;
+    const existing = isReview ? preselected : getReview(preselected.id, preselected.name);
 
-    const existing = getReview(preselected.id, preselected.name);
-    if (existing) {
-      if (priceInput) priceInput.value = String(existing.priceLevel || 4);
-      if (dylanStars) dylanStars.value = String(existing.dylanRating || 5);
-      if (dylanDish) dylanDish.value = existing.dylanDish || "";
-      if (dylanRev) dylanRev.value = existing.dylanComment || "";
-      if (mariaStars) mariaStars.value = String(existing.mariaRating || 5);
-      if (mariaDish) mariaDish.value = existing.mariaDish || "";
-      if (mariaRev) mariaRev.value = existing.mariaComment || "";
-    } else {
-      if (priceInput) priceInput.value = "4";
-      if (dylanStars) dylanStars.value = "5";
-      if (dylanDish) dylanDish.value = preselected.mustTry || "";
-      if (dylanRev) dylanRev.value = "";
-      if (mariaStars) mariaStars.value = "5";
-      if (mariaDish) mariaDish.value = "";
-      if (mariaRev) mariaRev.value = "";
+    if (catalogSelect) catalogSelect.value = placeId || "";
+    if (nameInput) nameInput.value = placeName || "";
+    if (mallInput) mallInput.value = mallName || "";
+    if (priceInput) priceInput.value = String(existing?.priceLevel || 4);
+    if (dateInput) {
+      dateInput.value = existing?.visitDateRaw || today;
     }
   } else {
     if (catalogSelect) catalogSelect.value = "";
     if (nameInput) nameInput.value = "";
     if (mallInput) mallInput.value = "";
     if (priceInput) priceInput.value = "4";
-    if (dylanStars) dylanStars.value = "5";
-    if (dylanDish) dylanDish.value = "";
-    if (dylanRev) dylanRev.value = "";
-    if (mariaStars) mariaStars.value = "5";
-    if (mariaDish) mariaDish.value = "";
-    if (mariaRev) mariaRev.value = "";
+    if (dateInput) dateInput.value = today;
   }
 
   modal.classList.remove("hidden");
@@ -1382,6 +1458,58 @@ function openVisitModal(preselected = null) {
 
 function closeVisitModal() {
   const modal = document.getElementById("visitReviewModal");
+  if (modal) {
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+  }
+}
+
+// ============================================================================
+// MODAL: RESEÑA INDIVIDUAL (DYLAN O MARIA)
+// ============================================================================
+function openSingleReviewModal(recordId, author) {
+  const modal = document.getElementById("singleReviewModal");
+  if (!modal) return;
+
+  const rec = state.coupleReviews.find((r) => r.id === recordId);
+  if (!rec) return;
+
+  const idInput = document.getElementById("singleReviewRecordId");
+  const authorInput = document.getElementById("singleReviewAuthor");
+  const badge = document.getElementById("singleReviewAuthorBadge");
+  const title = document.getElementById("singleReviewModalTitle");
+  const place = document.getElementById("singleReviewPlaceName");
+  const stars = document.getElementById("singleStars");
+  const dish = document.getElementById("singleDish");
+  const comment = document.getElementById("singleComment");
+
+  if (idInput) idInput.value = recordId;
+  if (authorInput) authorInput.value = author;
+
+  const isDylan = author === "Dylan";
+  if (badge) {
+    badge.textContent = isDylan ? "Reseña de Dylan" : "Reseña de Maria";
+    badge.className = isDylan
+      ? "text-[10px] font-bold uppercase tracking-wider text-sky-400"
+      : "text-[10px] font-bold uppercase tracking-wider text-rose-400";
+  }
+  if (title) title.textContent = `Calificación de ${author}`;
+  if (place) place.textContent = `${rec.placeName} · ${rec.mallName || "Santiago"}`;
+
+  const currentRating = isDylan ? rec.dylanRating : rec.mariaRating;
+  const currentDish = isDylan ? rec.dylanDish : rec.mariaDish;
+  const currentComment = isDylan ? rec.dylanComment : rec.mariaComment;
+
+  if (stars) stars.value = currentRating !== null && currentRating !== undefined ? String(currentRating) : "5";
+  if (dish) dish.value = currentDish || "";
+  if (comment) comment.value = currentComment || "";
+
+  modal.classList.remove("hidden");
+  modal.classList.add("flex");
+}
+
+function closeSingleReviewModal() {
+  const modal = document.getElementById("singleReviewModal");
   if (modal) {
     modal.classList.add("hidden");
     modal.classList.remove("flex");
@@ -1565,6 +1693,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const detailModal = document.getElementById("detailModal");
     const visitModal = document.getElementById("visitReviewModal");
     const addModal = document.getElementById("addModal");
+    const singleModal = document.getElementById("singleReviewModal");
     if (e.target === detailModal) {
       detailModal.classList.add("hidden");
       detailModal.classList.remove("flex");
@@ -1577,9 +1706,13 @@ document.addEventListener("DOMContentLoaded", () => {
       addModal.classList.add("hidden");
       addModal.classList.remove("flex");
     }
+    if (e.target === singleModal) {
+      singleModal.classList.add("hidden");
+      singleModal.classList.remove("flex");
+    }
   });
 
-  // Selector del modal de reseñas
+  // Selector del modal de registro de lugar
   document.getElementById("visitSelectCatalog")?.addEventListener("change", (e) => {
     const id = e.target.value;
     if (!id) return;
@@ -1587,16 +1720,14 @@ document.addEventListener("DOMContentLoaded", () => {
     if (p) {
       const nameInput = document.getElementById("visitPlaceName");
       const mallInput = document.getElementById("visitMallName");
-      const dishInput = document.getElementById("visitDylanDish");
 
       if (nameInput) nameInput.value = p.name;
       const mall = getMallById(p.mallId);
       if (mallInput) mallInput.value = mall ? mall.shortName : "Santiago";
-      if (dishInput && !dishInput.value) dishInput.value = p.mustTry || "";
     }
   });
 
-  // Guardar Reseña de Dylan y Maria
+  // Guardar Local Visitado (solo datos del lugar)
   document.getElementById("formVisitReview")?.addEventListener("submit", (e) => {
     e.preventDefault();
     const catalogId = document.getElementById("visitSelectCatalog")?.value || null;
@@ -1605,40 +1736,42 @@ document.addEventListener("DOMContentLoaded", () => {
     const dateRaw = document.getElementById("visitDate").value;
     const priceLevel = Number(document.getElementById("visitPriceLevel").value) || 4;
 
-    const dylanRating = Number(document.getElementById("visitDylanStars").value) || 5;
-    const dylanDish = document.getElementById("visitDylanDish").value.trim();
-    const dylanComment = document.getElementById("visitDylanReview").value.trim() || "Buena salida juntos.";
-
-    const mariaRating = Number(document.getElementById("visitMariaStars").value) || 5;
-    const mariaDish = document.getElementById("visitMariaDish").value.trim();
-    const mariaComment = document.getElementById("visitMariaReview").value.trim() || "Nos gustó mucho.";
-
     if (!placeName) return;
 
     const formattedDate = dateRaw
       ? new Date(dateRaw + "T12:00:00").toLocaleDateString("es-CL", { day: "2-digit", month: "short" })
       : "Hoy";
 
-    const newRev = {
-      id: "rev-" + Date.now(),
-      placeId: catalogId || "custom-" + Date.now(),
-      placeName,
-      mallName,
-      visitDate: formattedDate,
-      priceLevel,
-      dylanRating,
-      dylanDish,
-      dylanComment,
-      mariaRating,
-      mariaDish,
-      mariaComment
-    };
-
-    // Evitar duplicados por id o nombre
-    state.coupleReviews = state.coupleReviews.filter(
-      (r) => !(catalogId && r.placeId === catalogId) && r.placeName.toLowerCase() !== placeName.toLowerCase()
+    // Si ya existía este lugar, actualizamos su información sin borrar las notas de Dylan o Maria
+    const existingIndex = state.coupleReviews.findIndex(
+      (r) => (catalogId && r.placeId === catalogId) || (r.placeName || "").toLowerCase().trim() === placeName.toLowerCase()
     );
-    state.coupleReviews.unshift(newRev);
+
+    if (existingIndex !== -1) {
+      state.coupleReviews[existingIndex].placeName = placeName;
+      state.coupleReviews[existingIndex].mallName = mallName;
+      state.coupleReviews[existingIndex].visitDate = formattedDate;
+      state.coupleReviews[existingIndex].visitDateRaw = dateRaw;
+      state.coupleReviews[existingIndex].priceLevel = priceLevel;
+      if (catalogId) state.coupleReviews[existingIndex].placeId = catalogId;
+    } else {
+      const newRev = {
+        id: "rev-" + Date.now(),
+        placeId: catalogId || "custom-" + Date.now(),
+        placeName,
+        mallName,
+        visitDate: formattedDate,
+        visitDateRaw: dateRaw,
+        priceLevel,
+        dylanRating: null,
+        dylanDish: "",
+        dylanComment: "",
+        mariaRating: null,
+        mariaDish: "",
+        mariaComment: ""
+      };
+      state.coupleReviews.unshift(newRev);
+    }
 
     savePersistedState();
     renderVisitedSection();
@@ -1646,6 +1779,38 @@ document.addEventListener("DOMContentLoaded", () => {
     updateCounters();
     closeVisitModal();
     switchTab("visited");
+  });
+
+  // Modal de Reseña Individual (Dylan / Maria)
+  document.getElementById("btnCloseSingleReviewModal")?.addEventListener("click", closeSingleReviewModal);
+  document.getElementById("btnCancelSingleReview")?.addEventListener("click", closeSingleReviewModal);
+
+  document.getElementById("formSingleReview")?.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const recordId = document.getElementById("singleReviewRecordId")?.value;
+    const author = document.getElementById("singleReviewAuthor")?.value;
+    const stars = Number(document.getElementById("singleStars")?.value) || 5;
+    const dish = document.getElementById("singleDish")?.value.trim() || "";
+    const comment = document.getElementById("singleComment")?.value.trim() || "";
+
+    const rec = state.coupleReviews.find((r) => r.id === recordId);
+    if (!rec) return;
+
+    if (author === "Dylan") {
+      rec.dylanRating = stars;
+      rec.dylanDish = dish;
+      rec.dylanComment = comment;
+    } else {
+      rec.mariaRating = stars;
+      rec.mariaDish = dish;
+      rec.mariaComment = comment;
+    }
+
+    savePersistedState();
+    renderVisitedSection();
+    renderCatalog();
+    updateCounters();
+    closeSingleReviewModal();
   });
 
   // Modal para agregar local al catálogo
