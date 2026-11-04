@@ -1558,10 +1558,52 @@ function resetFilters() {
 }
 
 // ============================================================================
+// TIMER CUENTA REGRESIVA DISCRETO (HASTA EL 22 DE ESTE MES)
+// ============================================================================
+function initCountdownTimer() {
+  const textEl = document.getElementById("headerCountdownText");
+  if (!textEl) return;
+
+  function update() {
+    const now = new Date();
+    // Objetivo: día 22 del mes actual a las 00:00:00
+    const target = new Date(now.getFullYear(), now.getMonth(), 22, 0, 0, 0);
+    const diff = target.getTime() - now.getTime();
+
+    if (diff <= 0) {
+      const endOfDay = new Date(now.getFullYear(), now.getMonth(), 22, 23, 59, 59);
+      if (now.getTime() <= endOfDay.getTime()) {
+        textEl.textContent = "¡Es hoy!";
+      } else {
+        textEl.textContent = "Cumplido";
+      }
+      return;
+    }
+
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+    const mins = Math.floor((diff / (1000 * 60)) % 60);
+    const secs = Math.floor((diff / 1000) % 60);
+
+    const pad = (n) => String(n).padStart(2, "0");
+
+    if (days > 0) {
+      textEl.textContent = `${days}d ${pad(hours)}h ${pad(mins)}m ${pad(secs)}s`;
+    } else {
+      textEl.textContent = `${pad(hours)}h ${pad(mins)}m ${pad(secs)}s`;
+    }
+  }
+
+  update();
+  setInterval(update, 1000);
+}
+
+// ============================================================================
 // INICIALIZACIÓN GLOBAL (EVENTOS Y LISTENERS)
 // ============================================================================
 document.addEventListener("DOMContentLoaded", () => {
   loadPersistedState();
+  initCountdownTimer();
 
   // Poblar selectores de mall del catálogo y modal de nuevo local
   const catMallSelect = document.getElementById("catalogMallSelect");

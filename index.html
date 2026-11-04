@@ -86,14 +86,19 @@
 
   <!-- Encabezado y Navegación Principal -->
   <header class="sticky top-0 z-40 glass-card border-b border-white/10">
-    <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-      <div class="flex items-center gap-2.5">
+    <div class="max-w-5xl mx-auto px-4 py-2.5 flex flex-wrap items-center justify-between gap-2.5">
+      <div class="flex items-center gap-2 flex-wrap">
         <h1 class="text-base sm:text-lg font-extrabold tracking-tight bg-gradient-to-r from-white via-rose-100 to-pink-300 bg-clip-text text-transparent">
           ¿Dónde Comemos, Amor?
         </h1>
         <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30">
           Dylan & Maria
         </span>
+        <div id="headerCountdown" title="Cuenta regresiva al 22 de Noviembre" class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/10 text-[10px] text-slate-400 font-mono">
+          <span class="text-rose-300/70 font-sans font-medium text-[9px]">22 Nov</span>
+          <span class="text-white/20 text-[9px]">·</span>
+          <span id="headerCountdownText" class="text-slate-300 font-medium"></span>
+        </div>
       </div>
 
       <!-- Menú de 3 Apartados -->
